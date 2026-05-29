@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Dexams — Practice exams, ace your tests. Import your own question sets and practice with timed quizzes.">
+  <title>Dexams — Exam Practice Platform</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📝</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ====== HEADER ====== -->
+  <header class="header" id="header">
+    <div class="header-content">
+      <div class="logo" id="logoBtn">
+        <span class="logo-icon">📝</span>
+        <span class="logo-text">Dexams</span>
+      </div>
+      <nav class="nav" id="navMenu">
+        <a class="nav-link active" data-page="home" data-i18n="nav_home">Home</a>
+        <a class="nav-link" data-page="import" data-i18n="nav_import">Import</a>
+        <a class="nav-link" data-page="exams" data-i18n="nav_exams">Exams</a>
+        <a class="nav-link" data-page="history" data-i18n="nav_history">History</a>
+      </nav>
+      <div class="header-actions">
+        <button class="lang-toggle" id="langToggle">EN</button>
+        <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ====== MAIN ====== -->
+  <main class="main">
+    <div class="container">
+
+      <!-- ── HOME PAGE ── -->
+      <section class="page active" id="page-home">
+        <div class="hero">
+          <h1 class="hero-title">Dexams</h1>
+          <p class="hero-subtitle" data-i18n="hero_subtitle">Practice exams, ace your tests. Import question sets, set your own timer, and track your progress.</p>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-icon">📚</span>
+            <div class="stat-value" id="statExams">0</div>
+            <div class="stat-label" data-i18n="stat_exams">Exams Imported</div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">✍️</span>
+            <div class="stat-value" id="statAttempts">0</div>
+            <div class="stat-label" data-i18n="stat_attempts">Attempts</div>
+          </div>
+          <div class="stat-card">
+            <span class="stat-icon">⭐</span>
+            <div class="stat-value" id="statAvgScore">-</div>
+            <div class="stat-label" data-i18n="stat_avg_score">Average Score</div>
+          </div>
+        </div>
+
+        <div class="quick-actions">
+          <button class="action-card" data-navigate="import" id="actionImport">
+            <span class="action-icon">📥</span>
+            <div class="action-title" data-i18n="action_import">Import Exam</div>
+            <div class="action-desc" data-i18n="action_import_desc">Upload JSON or TXT question files</div>
+          </button>
+          <button class="action-card" data-navigate="exams" id="actionPractice">
+            <span class="action-icon">🎯</span>
+            <div class="action-title" data-i18n="action_practice">Start Practice</div>
+            <div class="action-desc" data-i18n="action_practice_desc">Choose an exam and set your timer</div>
+          </button>
+          <button class="action-card" data-navigate="history" id="actionHistory">
+            <span class="action-icon">📊</span>
+            <div class="action-title" data-i18n="action_history">View History</div>
+            <div class="action-desc" data-i18n="action_history_desc">Review past attempts and track progress</div>
+          </button>
+        </div>
+      </section>
+
+      <!-- ── IMPORT PAGE ── -->
+      <section class="page" id="page-import">
+        <div class="page-header">
+          <h2 data-i18n="import_title">Import Exam</h2>
+        </div>
+
+        <div class="import-zone" id="dropZone">
+          <span class="import-icon">📄</span>
+          <p class="import-text" data-i18n="import_drag">Drag & drop your file here</p>
+          <p class="import-or" data-i18n="import_or">or</p>
+          <button class="btn btn-primary" id="browseBtn" data-i18n="import_browse">Browse Files</button>
+          <input type="file" id="fileInput" accept=".json,.txt" hidden>
+          <p class="import-formats" data-i18n="import_formats">Supported formats: JSON, TXT</p>
+        </div>
+
+        <!-- Import Preview -->
+        <div class="import-preview hidden" id="importPreview">
+          <div class="glass-card">
+            <div class="preview-header">
+              <h3 data-i18n="preview_title">Preview</h3>
+            </div>
+            <div class="preview-info" id="previewInfo"></div>
+
+            <!-- Title input -->
+            <div class="form-group">
+              <label class="form-label" data-i18n="preview_exam_title">Exam Title</label>
+              <input type="text" class="form-input" id="importTitle" placeholder="Enter exam title...">
+            </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="preview_exam_subject">Subject</label>
+              <input type="text" class="form-input" id="importSubject" placeholder="Enter subject...">
+            </div>
+
+            <h4 class="mb-4" data-i18n="preview_sample_questions">Sample Questions</h4>
+            <div id="previewQuestions"></div>
+
+            <div class="preview-actions">
+              <button class="btn btn-secondary" id="cancelImportBtn" data-i18n="btn_cancel">Cancel</button>
+              <button class="btn btn-primary" id="confirmImportBtn" data-i18n="btn_import">Import Exam</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Format guide -->
+        <div class="glass-card mt-6" id="formatGuide">
+          <h3 class="mb-4" data-i18n="format_guide_title">📖 Import Format Guide</h3>
+          <div class="format-guide-grid">
+            <div>
+              <h4 class="text-primary mb-4">JSON Format</h4>
+              <pre style="background: var(--bg-glass); padding: var(--space-4); border-radius: var(--radius-md); font-size: var(--font-xs); overflow-x: auto; color: var(--text-secondary); line-height: 1.6;">{
+  "title": "My Exam",
+  "subject": "Math",
+  "questions": [
+    {
+      "text": "Question?",
+      "type": "single",
+      "options": ["A", "B", "C", "D"],
+      "correctAnswer": 0
+    },
+    {
+      "text": "Multi-choice?",
+      "type": "multiple",
+      "options": ["A", "B", "C"],
+      "correctAnswers": [0, 2]
+    }
+  ]
+}</pre>
+            </div>
+            <div>
+              <h4 class="text-primary mb-4">TXT Format</h4>
+              <pre style="background: var(--bg-glass); padding: var(--space-4); border-radius: var(--radius-md); font-size: var(--font-xs); overflow-x: auto; color: var(--text-secondary); line-height: 1.6;">Câu 1: Question text?
+A. Option 1
+B. Option 2
+C. Option 3
+D. Option 4
+Đáp án: A
+Giải thích: Giải thích đáp án câu 1 (tùy chọn)
+
+Câu 2: Multi-choice?
+A. Option 1
+B. Option 2
+C. Option 3
+Đáp án: A,C
+Giải thích: Giải thích đáp án câu 2 (tùy chọn)</pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── EXAMS LIST PAGE ── -->
+      <section class="page" id="page-exams">
+        <div class="page-header">
+          <h2 data-i18n="exams_title">Your Exams</h2>
+          <button class="btn btn-primary" data-navigate="import" data-i18n="btn_import_new">+ Import New</button>
+        </div>
+
+        <div class="exam-grid" id="examGrid"></div>
+
+        <div class="empty-state hidden" id="emptyExams">
+          <div class="empty-icon">📚</div>
+          <p class="empty-text" data-i18n="exams_empty">No exams yet. Import one to get started!</p>
+          <button class="btn btn-primary" data-navigate="import" data-i18n="btn_import_first">Import Your First Exam</button>
+        </div>
+      </section>
+
+      <!-- ── EXAM CONFIG PAGE ── -->
+      <section class="page" id="page-config">
+        <div class="config-section">
+          <div class="page-header" style="justify-content: center;">
+            <h2 data-i18n="config_title">Configure Exam</h2>
+          </div>
+
+          <div class="config-card">
+            <div class="config-exam-title" id="configExamTitle"></div>
+
+            <!-- Time Setting -->
+            <div class="form-group">
+              <label class="form-label" data-i18n="config_time">Time Limit (minutes)</label>
+              <div class="time-presets" id="timePresets">
+                <button class="time-preset" data-time="15">15</button>
+                <button class="time-preset" data-time="30">30</button>
+                <button class="time-preset selected" data-time="45">45</button>
+                <button class="time-preset" data-time="60">60</button>
+                <button class="time-preset" data-time="90">90</button>
+                <button class="time-preset" data-time="custom" data-i18n="config_custom">Custom</button>
+              </div>
+              <input type="number" class="form-input hidden" id="customTimeInput" min="1" max="300" placeholder="Enter minutes...">
+            </div>
+
+            <!-- Question Count -->
+            <div class="form-group">
+              <label class="form-label" data-i18n="config_question_count">Number of Questions</label>
+              <div style="display: flex; align-items: center; gap: var(--space-3);">
+                <input type="range" id="questionCountSlider" min="1" style="flex:1; accent-color: var(--primary);">
+                <span id="questionCountDisplay" style="font-weight: 600; min-width: 40px; text-align: center;"></span>
+              </div>
+            </div>
+
+            <!-- Shuffle -->
+            <div class="form-group">
+              <label class="form-checkbox">
+                <input type="checkbox" id="shuffleToggle">
+                <span data-i18n="config_shuffle">Shuffle question order</span>
+              </label>
+            </div>
+
+            <!-- Start -->
+            <div class="config-start">
+              <button class="btn btn-primary btn-lg" id="startExamBtn" data-i18n="btn_start_exam">🚀 Start Exam</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── EXAM TAKING PAGE ── -->
+      <section class="page" id="page-exam">
+        <!-- Timer Bar -->
+        <div class="exam-timer-bar" id="examTimerBar">
+          <div class="timer-display">
+            <span class="timer-icon">⏱️</span>
+            <span class="timer-value" id="timerDisplay">45:00</span>
+          </div>
+          <div class="timer-progress">
+            <div class="timer-progress-bar" id="timerProgressBar" style="width: 100%"></div>
+          </div>
+          <span style="font-size: var(--font-sm); color: var(--text-muted);">
+            <span id="examProgress">0/0</span>
+          </span>
+        </div>
+
+        <div class="exam-layout">
+          <!-- Question Area -->
+          <div class="question-area" id="questionArea">
+            <div class="question-header">
+              <span class="question-number" id="questionNumber">Question 1 / 10</span>
+              <span class="question-type-badge" id="questionTypeBadge"></span>
+            </div>
+            <div class="question-text" id="questionText"></div>
+            <div class="question-hint hidden" id="questionHint" data-i18n="hint_multi">Select all correct answers</div>
+            <ul class="options-list" id="optionsList"></ul>
+
+            <div class="question-nav-actions">
+              <button class="btn btn-secondary" id="prevQuestionBtn">
+                ← <span data-i18n="btn_prev">Previous</span>
+              </button>
+              <button class="btn btn-ghost" id="markReviewBtn" data-i18n="btn_mark_review">🔖 Mark for Review</button>
+              <button class="btn btn-primary" id="nextQuestionBtn">
+                <span data-i18n="btn_next">Next</span> →
+              </button>
+            </div>
+          </div>
+
+          <!-- Sidebar -->
+          <div class="exam-sidebar" id="examSidebar">
+            <div class="nav-panel">
+              <div class="nav-panel-title" data-i18n="nav_panel_title">Question Navigator</div>
+              <div class="nav-grid" id="navGrid"></div>
+              <div class="nav-legend">
+                <div class="nav-legend-item">
+                  <div class="nav-legend-dot dot-current"></div>
+                  <span data-i18n="legend_current">Current</span>
+                </div>
+                <div class="nav-legend-item">
+                  <div class="nav-legend-dot dot-answered"></div>
+                  <span data-i18n="legend_answered">Answered</span>
+                </div>
+                <div class="nav-legend-item">
+                  <div class="nav-legend-dot dot-marked"></div>
+                  <span data-i18n="legend_marked">Marked for Review</span>
+                </div>
+                <div class="nav-legend-item">
+                  <div class="nav-legend-dot dot-unanswered"></div>
+                  <span data-i18n="legend_unanswered">Unanswered</span>
+                </div>
+              </div>
+              <button class="btn btn-accent nav-submit" id="submitExamBtn" data-i18n="btn_submit">Submit Exam</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── RESULTS PAGE ── -->
+      <section class="page" id="page-results">
+        <div class="results-section">
+          <div class="results-card">
+            <h2 class="results-title" data-i18n="results_title">Exam Results</h2>
+
+            <!-- Donut Chart -->
+            <div class="donut-chart-container">
+              <div class="donut-chart" id="donutChart">
+                <div class="donut-center">
+                  <div class="donut-score" id="resultScore">0</div>
+                  <div class="donut-label" data-i18n="results_out_of">/10</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Grade Badge -->
+            <div id="gradeBadge"></div>
+
+            <!-- Summary -->
+            <div class="results-summary" id="resultsSummary">
+              <div class="result-stat stat-correct">
+                <div class="result-stat-value" id="resultCorrect">0</div>
+                <div class="result-stat-label" data-i18n="results_correct">Correct</div>
+              </div>
+              <div class="result-stat stat-wrong">
+                <div class="result-stat-value" id="resultWrong">0</div>
+                <div class="result-stat-label" data-i18n="results_wrong">Wrong</div>
+              </div>
+              <div class="result-stat stat-skipped">
+                <div class="result-stat-value" id="resultSkipped">0</div>
+                <div class="result-stat-label" data-i18n="results_skipped">Skipped</div>
+              </div>
+              <div class="result-stat stat-time">
+                <div class="result-stat-value" id="resultTime">0:00</div>
+                <div class="result-stat-label" data-i18n="results_time">Time Spent</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="results-actions">
+            <button class="btn btn-primary" id="reviewAnswersBtn" data-i18n="btn_review_answers">🔍 Review Answers</button>
+            <button class="btn btn-secondary" id="retryExamBtn" data-i18n="btn_retry">🔄 Retry Exam</button>
+            <button class="btn btn-ghost" data-navigate="home" data-i18n="btn_go_home">🏠 Go Home</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── REVIEW PAGE ── -->
+      <section class="page" id="page-review">
+        <div class="page-header">
+          <h2 data-i18n="review_title">Review Answers</h2>
+          <button class="btn btn-secondary" id="backToResultsBtn" data-i18n="btn_back_results">← Back to Results</button>
+        </div>
+        <div class="review-section" id="reviewSection"></div>
+      </section>
+
+      <!-- ── HISTORY PAGE ── -->
+      <section class="page" id="page-history">
+        <div class="page-header">
+          <h2 data-i18n="history_title">Attempt History</h2>
+          <button class="btn btn-danger btn-sm hidden" id="clearHistoryBtn" data-i18n="btn_clear_history">Clear All</button>
+        </div>
+
+        <div class="history-list" id="historyList"></div>
+
+        <div class="empty-state hidden" id="emptyHistory">
+          <div class="empty-icon">📋</div>
+          <p class="empty-text" data-i18n="history_empty">No attempts yet. Start practicing!</p>
+          <button class="btn btn-primary" data-navigate="exams" data-i18n="btn_start_first">Start Your First Exam</button>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ====== MODAL ====== -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal" id="modal">
+      <h3 class="modal-title" id="modalTitle"></h3>
+      <div class="modal-body" id="modalBody"></div>
+      <div class="modal-actions" id="modalActions"></div>
+    </div>
+  </div>
+
+  <!-- ====== TOAST CONTAINER ====== -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ====== SCRIPTS ====== -->
+  <script src="storage.js"></script>
+  <script src="importer.js"></script>
+  <script src="exam-engine.js"></script>
+  <script src="scorer.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
