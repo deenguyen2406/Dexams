@@ -110,6 +110,10 @@
               <label class="form-label" data-i18n="preview_exam_subject">Subject</label>
               <input type="text" class="form-input" id="importSubject" placeholder="Enter subject...">
             </div>
+            <div class="form-group">
+              <label class="form-label" data-i18n="preview_exam_passcode">Passcode (Optional)</label>
+              <input type="text" class="form-input" id="importPasscode" placeholder="Enter passcode to protect this exam...">
+            </div>
 
             <h4 class="mb-4" data-i18n="preview_sample_questions">Sample Questions</h4>
             <div id="previewQuestions"></div>
@@ -243,12 +247,21 @@ Giải thích: Giải thích đáp án câu 2 (tùy chọn)</pre>
           <div class="timer-progress">
             <div class="timer-progress-bar" id="timerProgressBar" style="width: 100%"></div>
           </div>
-          <span style="font-size: var(--font-sm); color: var(--text-muted);">
-            <span id="examProgress">0/0</span>
-          </span>
+          <div style="display: flex; align-items: center; gap: var(--space-4);">
+            <button class="btn btn-secondary btn-sm" id="pauseExamBtn" data-i18n="btn_pause">⏸ Pause</button>
+            <span style="font-size: var(--font-sm); color: var(--text-muted);">
+              <span id="examProgress">0/0</span>
+            </span>
+          </div>
         </div>
 
-        <div class="exam-layout">
+        <div class="exam-layout" style="position: relative;">
+          <!-- Pause Overlay -->
+          <div class="pause-overlay hidden" id="pauseOverlay">
+            <h2 data-i18n="pause_title">Exam Paused</h2>
+            <p data-i18n="pause_desc" style="color: var(--text-secondary); margin: var(--space-4) 0;">Your timer is stopped. The questions are hidden to prevent cheating.</p>
+            <button class="btn btn-primary btn-lg" id="resumeExamBtn" data-i18n="btn_resume">▶ Resume Exam</button>
+          </div>
           <!-- Question Area -->
           <div class="question-area" id="questionArea">
             <div class="question-header">
@@ -386,6 +399,31 @@ Giải thích: Giải thích đáp án câu 2 (tùy chọn)</pre>
 
   <!-- ====== TOAST CONTAINER ====== -->
   <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ====== FIREBASE SDK ====== -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyD0NNqmTC4Yjp49JE4QZDSgJsWccN1CGDg",
+      authDomain: "dexams-20260531.firebaseapp.com",
+      databaseURL: "https://dexams-20260531-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "dexams-20260531",
+      storageBucket: "dexams-20260531.firebasestorage.app",
+      messagingSenderId: "399805834798",
+      appId: "1:399805834798:web:da8f303b29b270f203a1bf",
+      measurementId: "G-4PTFFQ72Z0"
+    };
+    
+    // Khởi tạo Firebase nếu có config
+    if (firebaseConfig.apiKey) {
+      firebase.initializeApp(firebaseConfig);
+      window.firebaseDb = firebase.database();
+    } else {
+      console.warn("Firebase config is missing! Data will not be saved to server.");
+      window.firebaseDb = null;
+    }
+  </script>
 
   <!-- ====== SCRIPTS ====== -->
   <script src="storage.js"></script>

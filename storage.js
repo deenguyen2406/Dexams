@@ -1,5 +1,5 @@
 /* ============================================
-   STORAGE.JS — Dexams localStorage Manager
+   STORAGE.JS — Dexams Firebase Manager
    ============================================ */
 
 window.Dexams = window.Dexams || {};
@@ -7,6 +7,7 @@ window.Dexams = window.Dexams || {};
 (function () {
   'use strict';
 
+  // Constants for LocalStorage Fallbacks
   const EXAM_KEY = 'dexams_exams';
   const HISTORY_KEY = 'dexams_history';
   const SETTINGS_KEY = 'dexams_settings';
@@ -16,130 +17,208 @@ window.Dexams = window.Dexams || {};
     return Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 9);
   }
 
-  function safeGet(key, fallback) {
+  // --- Local Fallbacks ---
+  function safeGetLocal(key, fallback) {
     try {
       const data = localStorage.getItem(key);
       return data ? JSON.parse(data) : fallback;
     } catch (e) {
-      console.error(`[Storage] Error reading ${key}:`, e);
+      console.error(`[Storage] Error reading local ${key}:`, e);
       return fallback;
     }
   }
 
-  function safeSet(key, value) {
+  function safeSetLocal(key, value) {
     try {
       localStorage.setItem(key, JSON.stringify(value));
       return true;
     } catch (e) {
-      console.error(`[Storage] Error writing ${key}:`, e);
+      console.error(`[Storage] Error writing local ${key}:`, e);
       return false;
     }
   }
 
+  // --- Firebase Helpers ---
+  function getDb() {
+    return window.firebaseDb || null;
+  }
+
   /* ---------- Exam Storage ---------- */
   const ExamStorage = {
-    getAll() {
-      return safeGet(EXAM_KEY, []);
+    async getAll() {
+      const db = getDb();
+      if (!db) return safeGetLocal(EXAM_KEY, []);
+      try {
+        const snapshot = await db.ref('exams').once('value');
+        const data = snapshot.val();
+        return data ? Object.values(data) : [];
+      } catch (err) {
+        console.error("Firebase get exams error:", err);
+        return safeGetLocal(EXAM_KEY, []);
+      }
     },
 
-    getById(id) {
-      return this.getAll().find(e => e.id === id) || null;
+    async getById(id) {
+      const all = await this.getAll();
+      return all.find(e => e.id === id) || null;
     },
 
-    save(exam) {
+    async save(exam) {
       if (!exam.id) exam.id = generateId();
       if (!exam.createdAt) exam.createdAt = new Date().toISOString();
       exam.updatedAt = new Date().toISOString();
       exam.totalQuestions = exam.questions ? exam.questions.length : 0;
 
-      const exams = this.getAll();
-      const index = exams.findIndex(e => e.id === exam.id);
-      if (index >= 0) {
-        exams[index] = exam;
-      } else {
-        exams.push(exam);
+      const db = getDb();
+      if (db) {
+        try {
+          await db.ref('exams/' + exam.id).set(exam);
+        } catch (err) {
+          console.error("Firebase save exam error:", err);
+        }
       }
-      return safeSet(EXAM_KEY, exams);
+      
+      // Fallback local save as well for offline cache
+      const exams = safeGetLocal(EXAM_KEY, []);
+      const index = exams.findIndex(e => e.id === exam.id);
+      if (index >= 0) exams[index] = exam;
+      else exams.push(exam);
+      return safeSetLocal(EXAM_KEY, exams);
     },
 
-    delete(id) {
-      const exams = this.getAll().filter(e => e.id !== id);
-      return safeSet(EXAM_KEY, exams);
+    async delete(id) {
+      const db = getDb();
+      if (db) {
+        try {
+          await db.ref('exams/' + id).remove();
+        } catch (err) {
+          console.error("Firebase delete exam error:", err);
+        }
+      }
+      const exams = safeGetLocal(EXAM_KEY, []).filter(e => e.id !== id);
+      return safeSetLocal(EXAM_KEY, exams);
     },
 
-    count() {
-      return this.getAll().length;
-    },
-
-    clear() {
-      localStorage.removeItem(EXAM_KEY);
+    async count() {
+      const all = await this.getAll();
+      return all.length;
     }
   };
 
   /* ---------- History Storage ---------- */
   const HistoryStorage = {
-    getAll() {
-      return safeGet(HISTORY_KEY, []);
+    async getAll() {
+      const db = getDb();
+      if (!db) return safeGetLocal(HISTORY_KEY, []);
+      try {
+        const snapshot = await db.ref('history').once('value');
+        const data = snapshot.val();
+        if (!data) return [];
+        return Object.values(data).sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
+      } catch (err) {
+        console.error("Firebase get history error:", err);
+        return safeGetLocal(HISTORY_KEY, []);
+      }
     },
 
-    getById(id) {
-      return this.getAll().find(r => r.id === id) || null;
+    async getById(id) {
+      const all = await this.getAll();
+      return all.find(r => r.id === id) || null;
     },
 
-    getByExamId(examId) {
-      return this.getAll().filter(r => r.examId === examId);
+    async getByExamId(examId) {
+      const all = await this.getAll();
+      return all.filter(r => r.examId === examId);
     },
 
-    save(result) {
+    async save(result) {
       if (!result.id) result.id = generateId();
       if (!result.submittedAt) result.submittedAt = new Date().toISOString();
-      const history = this.getAll();
+      
+      const db = getDb();
+      if (db) {
+        try {
+          await db.ref('history/' + result.id).set(result);
+        } catch (err) {
+          console.error("Firebase save history error:", err);
+        }
+      }
+
+      const history = safeGetLocal(HISTORY_KEY, []);
       history.unshift(result);
-      return safeSet(HISTORY_KEY, history);
+      return safeSetLocal(HISTORY_KEY, history);
     },
 
-    delete(id) {
-      const history = this.getAll().filter(r => r.id !== id);
-      return safeSet(HISTORY_KEY, history);
+    async delete(id) {
+      const db = getDb();
+      if (db) {
+        try {
+          await db.ref('history/' + id).remove();
+        } catch (err) {
+          console.error("Firebase delete history error:", err);
+        }
+      }
+      const history = safeGetLocal(HISTORY_KEY, []).filter(r => r.id !== id);
+      return safeSetLocal(HISTORY_KEY, history);
     },
 
-    count() {
-      return this.getAll().length;
+    async count() {
+      const all = await this.getAll();
+      return all.length;
     },
 
-    getAverageScore() {
-      const all = this.getAll();
+    async getAverageScore() {
+      const all = await this.getAll();
       if (all.length === 0) return 0;
       const sum = all.reduce((s, r) => s + (r.score || 0), 0);
       return Math.round((sum / all.length) * 100) / 100;
     },
 
-    getBestScore(examId) {
-      const results = examId ? this.getByExamId(examId) : this.getAll();
+    async getBestScore(examId) {
+      const results = examId ? await this.getByExamId(examId) : await this.getAll();
       if (results.length === 0) return 0;
       return Math.max(...results.map(r => r.score || 0));
     },
 
-    clear() {
+    async clear() {
+      const db = getDb();
+      if (db) {
+        try {
+          await db.ref('history').remove();
+        } catch (err) {}
+      }
       localStorage.removeItem(HISTORY_KEY);
     }
   };
 
   /* ---------- Settings Storage ---------- */
   const SettingsStorage = {
-    get(key, defaultValue) {
-      const settings = safeGet(SETTINGS_KEY, {});
+    async get(key, defaultValue) {
+      const settings = await this.getAll();
       return settings[key] !== undefined ? settings[key] : defaultValue;
     },
 
-    set(key, value) {
-      const settings = safeGet(SETTINGS_KEY, {});
+    async set(key, value) {
+      const db = getDb();
+      if (db) {
+        try {
+          await db.ref('settings/' + key).set(value);
+        } catch(e) {}
+      }
+      const settings = safeGetLocal(SETTINGS_KEY, {});
       settings[key] = value;
-      return safeSet(SETTINGS_KEY, settings);
+      return safeSetLocal(SETTINGS_KEY, settings);
     },
 
-    getAll() {
-      return safeGet(SETTINGS_KEY, {});
+    async getAll() {
+      const db = getDb();
+      if (!db) return safeGetLocal(SETTINGS_KEY, {});
+      try {
+        const snapshot = await db.ref('settings').once('value');
+        return snapshot.val() || safeGetLocal(SETTINGS_KEY, {});
+      } catch (err) {
+        return safeGetLocal(SETTINGS_KEY, {});
+      }
     }
   };
 
@@ -174,3 +253,4 @@ window.Dexams = window.Dexams || {};
   window.Dexams.ProgressStorage = ProgressStorage;
   window.Dexams.generateId = generateId;
 })();
+

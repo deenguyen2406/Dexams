@@ -61,6 +61,12 @@ window.Dexams = window.Dexams || {};
 
     start() {
       this.startTime = Date.now();
+      this.isPaused = false;
+      this._startInterval();
+      this._saveProgress();
+    }
+
+    _startInterval() {
       this.timer = setInterval(() => {
         this.timeRemaining = Math.max(0, this.timeRemaining - 1);
         if (this.onTimerUpdate) {
@@ -74,7 +80,22 @@ window.Dexams = window.Dexams || {};
           this._saveProgress();
         }
       }, 1000);
-      this._saveProgress();
+    }
+
+    pause() {
+      if (this.timer && !this.isFinished) {
+        clearInterval(this.timer);
+        this.timer = null;
+        this.isPaused = true;
+        this._saveProgress();
+      }
+    }
+
+    resume() {
+      if (!this.timer && !this.isFinished && this.isPaused) {
+        this.isPaused = false;
+        this._startInterval();
+      }
     }
 
     _autoSubmit() {
@@ -188,9 +209,9 @@ window.Dexams = window.Dexams || {};
     submit() {
       if (this.isFinished) return null;
       this.isFinished = true;
-      clearInterval(this.timer);
+      if (this.timer) clearInterval(this.timer);
 
-      const elapsed = Math.round((Date.now() - this.startTime) / 1000);
+      const elapsed = this.totalTime - this.timeRemaining;
 
       // Clear saved progress
       Dexams.ProgressStorage.clear();

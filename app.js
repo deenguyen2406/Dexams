@@ -46,6 +46,7 @@ window.Dexams = window.Dexams || {};
       preview_title: 'Preview',
       preview_exam_title: 'Exam Title',
       preview_exam_subject: 'Subject',
+      preview_exam_passcode: 'Passcode (Optional)',
       preview_sample_questions: 'Sample Questions',
       btn_cancel: 'Cancel',
       btn_import: 'Import Exam',
@@ -87,6 +88,10 @@ window.Dexams = window.Dexams || {};
       btn_start_first: 'Start Your First Exam',
       btn_practice: 'Practice',
       btn_delete: 'Delete',
+      btn_pause: '⏸ Pause',
+      btn_resume: '▶ Resume Exam',
+      pause_title: 'Exam Paused',
+      pause_desc: 'Your timer is stopped. The questions are hidden to prevent cheating.',
       questions_label: 'questions',
       single_label: 'Single Choice',
       multiple_label: 'Multiple Choice',
@@ -145,6 +150,7 @@ window.Dexams = window.Dexams || {};
       preview_title: 'Xem trước',
       preview_exam_title: 'Tên đề thi',
       preview_exam_subject: 'Môn học',
+      preview_exam_passcode: 'Mật mã (Tùy chọn)',
       preview_sample_questions: 'Câu hỏi mẫu',
       btn_cancel: 'Hủy',
       btn_import: 'Nhập đề',
@@ -186,6 +192,10 @@ window.Dexams = window.Dexams || {};
       btn_start_first: 'Bắt đầu bài thi đầu tiên',
       btn_practice: 'Luyện thi',
       btn_delete: 'Xóa',
+      btn_pause: '⏸ Tạm dừng',
+      btn_resume: '▶ Tiếp tục thi',
+      pause_title: 'Đã tạm dừng',
+      pause_desc: 'Thời gian đã dừng lại. Câu hỏi được ẩn đi để tránh gian lận.',
       questions_label: 'câu',
       single_label: 'Một đáp án',
       multiple_label: 'Nhiều đáp án',
@@ -226,7 +236,7 @@ window.Dexams = window.Dexams || {};
   /* ================================================
      APP STATE
      ================================================ */
-  let currentLang = SettingsStorage.get('lang', 'vi');
+  let currentLang = 'vi'; // default, will be loaded from settings in init()
   let currentPage = 'home';
   let engine = null;
   let lastResult = null;          // last scored result for review
@@ -303,10 +313,10 @@ window.Dexams = window.Dexams || {};
   /* ================================================
      HOME PAGE
      ================================================ */
-  function renderHome() {
-    document.getElementById('statExams').textContent = ExamStorage.count();
-    document.getElementById('statAttempts').textContent = HistoryStorage.count();
-    const avg = HistoryStorage.getAverageScore();
+  async function renderHome() {
+    document.getElementById('statExams').textContent = await ExamStorage.count();
+    document.getElementById('statAttempts').textContent = await HistoryStorage.count();
+    const avg = await HistoryStorage.getAverageScore();
     document.getElementById('statAvgScore').textContent = avg > 0 ? avg.toFixed(1) : '-';
   }
 
@@ -426,14 +436,18 @@ window.Dexams = window.Dexams || {};
     document.getElementById('formatGuide').classList.remove('hidden');
   }
 
-  function confirmImport() {
+  async function confirmImport() {
     if (!pendingExam) return;
 
     pendingExam.title = document.getElementById('importTitle').value.trim() || 'Untitled Exam';
     pendingExam.subject = document.getElementById('importSubject').value.trim() || '';
+    const passcode = document.getElementById('importPasscode');
+    if (passcode && passcode.value.trim() !== '') {
+        pendingExam.passcode = passcode.value.trim();
+    }
     pendingExam.id = generateId();
 
-    ExamStorage.save(pendingExam);
+    await ExamStorage.save(pendingExam);
     showToast(t('toast_imported'), 'success');
 
     pendingExam = null;
@@ -444,8 +458,8 @@ window.Dexams = window.Dexams || {};
   /* ================================================
      EXAM LIST PAGE
      ================================================ */
-  function renderExamList() {
-    const exams = ExamStorage.getAll();
+  async function renderExamList() {
+    const exams = await ExamStorage.getAll();
     const grid = document.getElementById('examGrid');
     const empty = document.getElementById('emptyExams');
 
@@ -458,7 +472,8 @@ window.Dexams = window.Dexams || {};
     empty.classList.add('hidden');
     grid.classList.remove('hidden');
 
-    grid.innerHTML = exams.map(exam => {
+    let html = '';
+    for (const exam of exams) {
       const singleCount = exam.questions.filter(q => q.type !== 'multiple').length;
       const multiCount = exam.questions.filter(q => q.type === 'multiple').length;
       let typeLabel = '';
@@ -466,13 +481,14 @@ window.Dexams = window.Dexams || {};
       else if (multiCount > 0) typeLabel = t('multiple_label');
       else typeLabel = t('single_label');
 
-      const bestScore = HistoryStorage.getBestScore(exam.id);
-      const attempts = HistoryStorage.getByExamId(exam.id).length;
+      const bestScore = await HistoryStorage.getBestScore(exam.id);
+      const attempts = (await HistoryStorage.getByExamId(exam.id)).length;
+      const lockIcon = exam.passcode ? '🔒 ' : '';
 
-      return `
+      html += `
         <div class="exam-card" data-exam-id="${exam.id}">
           ${exam.subject ? `<span class="exam-card-subject">${escapeHtml(exam.subject)}</span>` : ''}
-          <div class="exam-card-title">${escapeHtml(exam.title)}</div>
+          <div class="exam-card-title">${lockIcon}${escapeHtml(exam.title)}</div>
           <div class="exam-card-meta">
             <span>📝 ${exam.totalQuestions} ${t('questions_label')}</span>
             <span>📋 ${typeLabel}</span>
@@ -484,10 +500,19 @@ window.Dexams = window.Dexams || {};
           </div>
         </div>
       `;
-    }).join('');
+    }
+    grid.innerHTML = html;
   }
 
-  function startConfig(examId) {
+  async function startConfig(examId) {
+    const exam = await ExamStorage.getById(examId);
+    if (exam && exam.passcode) {
+       const userCode = prompt(currentLang === 'vi' ? "Nhập passcode cho bài thi này:" : "Enter passcode for this exam:");
+       if (userCode !== exam.passcode) {
+           showToast(currentLang === 'vi' ? "Sai passcode!" : "Incorrect passcode!", "error");
+           return;
+       }
+    }
     selectedExamId = examId;
     navigateTo('config');
   }
@@ -499,8 +524,8 @@ window.Dexams = window.Dexams || {};
       [
         { text: t('btn_cancel'), class: 'btn-secondary', action: hideModal },
         {
-          text: t('modal_delete_confirm'), class: 'btn-danger', action: () => {
-            ExamStorage.delete(examId);
+          text: t('modal_delete_confirm'), class: 'btn-danger', action: async () => {
+            await ExamStorage.delete(examId);
             hideModal();
             showToast(t('toast_deleted'), 'info');
             renderExamList();
@@ -514,8 +539,8 @@ window.Dexams = window.Dexams || {};
   /* ================================================
      CONFIG PAGE
      ================================================ */
-  function renderConfig() {
-    const exam = ExamStorage.getById(selectedExamId);
+  async function renderConfig() {
+    const exam = await ExamStorage.getById(selectedExamId);
     if (!exam) {
       navigateTo('exams');
       return;
@@ -552,8 +577,8 @@ window.Dexams = window.Dexams || {};
     });
 
     // Start exam
-    document.getElementById('startExamBtn').addEventListener('click', () => {
-      const exam = ExamStorage.getById(selectedExamId);
+    document.getElementById('startExamBtn').addEventListener('click', async () => {
+      const exam = await ExamStorage.getById(selectedExamId);
       if (!exam) return;
 
       // Get time
@@ -779,12 +804,25 @@ window.Dexams = window.Dexams || {};
         ]
       );
     });
+
+    // Pause / Resume
+    document.getElementById('pauseExamBtn').addEventListener('click', () => {
+      if (!engine) return;
+      engine.pause();
+      document.getElementById('pauseOverlay').classList.remove('hidden');
+    });
+
+    document.getElementById('resumeExamBtn').addEventListener('click', () => {
+      if (!engine) return;
+      engine.resume();
+      document.getElementById('pauseOverlay').classList.add('hidden');
+    });
   }
 
   /* ================================================
      RESULTS & SCORING
      ================================================ */
-  function processResult(rawResult) {
+  async function processResult(rawResult) {
     const scoreData = Scorer.calculateScore(rawResult.questions, rawResult.answers);
     lastResult = {
       ...rawResult,
@@ -792,7 +830,7 @@ window.Dexams = window.Dexams || {};
     };
 
     // Save to history
-    HistoryStorage.save({
+    await HistoryStorage.save({
       id: generateId(),
       examId: rawResult.examId,
       examTitle: rawResult.examTitle,
@@ -951,8 +989,8 @@ window.Dexams = window.Dexams || {};
   /* ================================================
      HISTORY PAGE
      ================================================ */
-  function renderHistory() {
-    const history = HistoryStorage.getAll();
+  async function renderHistory() {
+    const history = await HistoryStorage.getAll();
     const list = document.getElementById('historyList');
     const empty = document.getElementById('emptyHistory');
     const clearBtn = document.getElementById('clearHistoryBtn');
@@ -1000,8 +1038,8 @@ window.Dexams = window.Dexams || {};
         [
           { text: t('btn_cancel'), class: 'btn-secondary', action: hideModal },
           {
-            text: t('modal_delete_confirm'), class: 'btn-danger', action: () => {
-              HistoryStorage.clear();
+            text: t('modal_delete_confirm'), class: 'btn-danger', action: async () => {
+              await HistoryStorage.clear();
               hideModal();
               showToast(t('toast_history_cleared'), 'info');
               renderHistory();
@@ -1072,7 +1110,10 @@ window.Dexams = window.Dexams || {};
   /* ================================================
      INITIALIZATION
      ================================================ */
-  function init() {
+  async function init() {
+    // Load saved language from settings
+    currentLang = await SettingsStorage.get('lang', 'vi');
+
     // Setup all event listeners
     setupImport();
     setupConfig();
