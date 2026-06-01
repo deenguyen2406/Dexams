@@ -842,7 +842,8 @@ window.Dexams = window.Dexams || {};
       percentage: scoreData.percentage,
       timeSpent: rawResult.timeSpent,
       timeLimit: rawResult.timeLimit,
-      submittedAt: rawResult.submittedAt
+      submittedAt: rawResult.submittedAt,
+      details: scoreData.details
     });
 
     renderResults();
@@ -1031,6 +1032,22 @@ window.Dexams = window.Dexams || {};
   }
 
   function setupHistory() {
+    document.getElementById('historyList').addEventListener('click', async (e) => {
+      const item = e.target.closest('.history-item');
+      if (!item) return;
+
+      const historyId = item.getAttribute('data-history-id');
+      const historyData = await HistoryStorage.getById(historyId);
+      
+      if (historyData && historyData.details) {
+        lastResult = historyData;
+        renderReview();
+        navigateTo('review');
+      } else {
+        showToast(currentLang === 'vi' ? 'Không có dữ liệu chi tiết cho lần thi này.' : 'No detailed data for this attempt.', 'warning');
+      }
+    });
+
     document.getElementById('clearHistoryBtn').addEventListener('click', () => {
       showModal(
         t('btn_clear_history'),
@@ -1173,6 +1190,24 @@ window.Dexams = window.Dexams || {};
         }
       }
     });
+
+    // Setup scroll to top button
+    const scrollToTopBtn = document.getElementById('scrollToTopBtn');
+    if (scrollToTopBtn) {
+      window.addEventListener('scroll', () => {
+        if (currentPage === 'review') {
+          if (window.scrollY > 300) {
+            scrollToTopBtn.classList.add('visible');
+          } else {
+            scrollToTopBtn.classList.remove('visible');
+          }
+        }
+      });
+      
+      scrollToTopBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+    }
 
     // Apply language
     updateAllI18n();

@@ -2135,3 +2135,47 @@ input, select, textarea {
 .pause-overlay.hidden {
   display: none !important;
 }
+
+/* ---------- Scroll to Top Button ---------- */
+.scroll-to-top {
+  position: fixed;
+  bottom: var(--space-8);
+  right: var(--space-8);
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-xl);
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-lg), var(--shadow-glow-primary);
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.scroll-to-top.visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.scroll-to-top:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-xl), var(--shadow-glow-primary);
+  filter: brightness(1.1);
+}
+
+@media (max-width: 768px) {
+  .scroll-to-top {
+    bottom: var(--space-6);
+    right: var(--space-6);
+    width: 40px;
+    height: 40px;
+    font-size: var(--font-lg);
+  }
+}
