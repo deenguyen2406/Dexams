@@ -242,6 +242,7 @@ window.Dexams = window.Dexams || {};
   let lastResult = null;          // last scored result for review
   let selectedExamId = null;      // exam chosen for config
   let pendingExam = null;         // parsed exam awaiting import confirmation
+  let reviewOrigin = 'results';   // tracks where review was opened from
 
   /* ================================================
      I18N FUNCTIONS
@@ -829,7 +830,7 @@ window.Dexams = window.Dexams || {};
       ...scoreData
     };
 
-    // Save to history
+    // Save to history (include questions & answers for later review)
     await HistoryStorage.save({
       id: generateId(),
       examId: rawResult.examId,
@@ -843,7 +844,8 @@ window.Dexams = window.Dexams || {};
       timeSpent: rawResult.timeSpent,
       timeLimit: rawResult.timeLimit,
       submittedAt: rawResult.submittedAt,
-      details: scoreData.details
+      questions: rawResult.questions,
+      answers: rawResult.answers
     });
 
     renderResults();
@@ -898,6 +900,7 @@ window.Dexams = window.Dexams || {};
 
   function setupResults() {
     document.getElementById('reviewAnswersBtn').addEventListener('click', () => {
+      reviewOrigin = 'results';
       renderReview();
       navigateTo('review');
     });
@@ -909,7 +912,7 @@ window.Dexams = window.Dexams || {};
     });
 
     document.getElementById('backToResultsBtn').addEventListener('click', () => {
-      navigateTo('results');
+      navigateTo(reviewOrigin);
     });
   }
 
@@ -1038,14 +1041,29 @@ window.Dexams = window.Dexams || {};
 
       const historyId = item.getAttribute('data-history-id');
       const historyData = await HistoryStorage.getById(historyId);
-      
-      if (historyData && historyData.details) {
-        lastResult = historyData;
+
+      if (!historyData) return;
+
+      // Reconstruct details from saved questions + answers
+      if (historyData.questions && historyData.answers) {
+        const scoreData = Scorer.calculateScore(historyData.questions, historyData.answers);
+        lastResult = { ...historyData, ...scoreData };
+        reviewOrigin = 'history';
         renderReview();
         navigateTo('review');
-      } else {
-        showToast(currentLang === 'vi' ? 'Không có dữ liệu chi tiết cho lần thi này.' : 'No detailed data for this attempt.', 'warning');
+        return;
       }
+
+      // Fallback: try to reconstruct from exam storage (for old history entries)
+      if (historyData.examId) {
+        const exam = await ExamStorage.getById(historyData.examId);
+        if (exam) {
+          showToast(currentLang === 'vi' ? 'Lần thi này không lưu chi tiết đáp án. Hãy thi lại để có dữ liệu đầy đủ.' : 'This attempt has no detailed answer data. Retake the exam for full review.', 'warning');
+          return;
+        }
+      }
+
+      showToast(currentLang === 'vi' ? 'Không có dữ liệu chi tiết cho lần thi này.' : 'No detailed data for this attempt.', 'warning');
     });
 
     document.getElementById('clearHistoryBtn').addEventListener('click', () => {
