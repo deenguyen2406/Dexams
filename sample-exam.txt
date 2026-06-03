@@ -37,3 +37,11 @@ C. 4
 D. 9
 Đáp án: B
 Giải thích: 2 là số nguyên tố nhỏ nhất, cũng là số nguyên tố chẵn duy nhất. Số 1 không phải số nguyên tố.
+
+Câu 6: [Đ/S] Trái đất quay quanh Mặt Trời.
+Đáp án: Đ
+Giải thích: Trái đất quay quanh Mặt Trời theo quỹ đạo elip với chu kỳ khoảng 365,25 ngày.
+
+Câu 7: [Đ/S] Nước sôi ở 50°C ở điều kiện áp suất tiêu chuẩn.
+Đáp án: S
+Giải thích: Nước sôi ở 100°C ở điều kiện áp suất tiêu chuẩn (1 atm), không phải 50°C.

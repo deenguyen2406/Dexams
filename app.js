@@ -95,6 +95,7 @@ window.Dexams = window.Dexams || {};
       questions_label: 'questions',
       single_label: 'Single Choice',
       multiple_label: 'Multiple Choice',
+      truefalse_label: 'True / False',
       mixed_label: 'Mixed',
       question_word: 'Question',
       modal_submit_title: 'Submit Exam?',
@@ -122,6 +123,8 @@ window.Dexams = window.Dexams || {};
       preview_questions_count: 'Questions',
       preview_single_count: 'Single Choice',
       preview_multi_count: 'Multiple Choice',
+      preview_truefalse_count: 'True / False',
+      hint_truefalse: 'Select True or False',
       created_label: 'Created',
       score_label: 'Score',
       time_label: 'Time',
@@ -199,6 +202,7 @@ window.Dexams = window.Dexams || {};
       questions_label: 'câu',
       single_label: 'Một đáp án',
       multiple_label: 'Nhiều đáp án',
+      truefalse_label: 'Đúng / Sai',
       mixed_label: 'Hỗn hợp',
       question_word: 'Câu',
       modal_submit_title: 'Nộp bài?',
@@ -226,6 +230,8 @@ window.Dexams = window.Dexams || {};
       preview_questions_count: 'Số câu hỏi',
       preview_single_count: 'Câu một đáp án',
       preview_multi_count: 'Câu nhiều đáp án',
+      preview_truefalse_count: 'Câu đúng/sai',
+      hint_truefalse: 'Chọn Đúng hoặc Sai',
       created_label: 'Ngày tạo',
       score_label: 'Điểm',
       time_label: 'Thời gian',
@@ -393,10 +399,11 @@ window.Dexams = window.Dexams || {};
     document.getElementById('importSubject').value = exam.subject || '';
 
     // Info
-    const singleCount = exam.questions.filter(q => q.type !== 'multiple').length;
+    const singleCount = exam.questions.filter(q => q.type === 'single').length;
     const multiCount = exam.questions.filter(q => q.type === 'multiple').length;
+    const tfCount = exam.questions.filter(q => q.type === 'truefalse').length;
 
-    const infoHtml = `
+    let infoHtml = `
       <div class="preview-info-item">
         <div class="preview-info-label">${t('preview_questions_count')}</div>
         <div class="preview-info-value">${exam.questions.length}</div>
@@ -410,23 +417,52 @@ window.Dexams = window.Dexams || {};
         <div class="preview-info-value">${multiCount}</div>
       </div>
     `;
+    if (tfCount > 0) {
+      infoHtml += `
+        <div class="preview-info-item">
+          <div class="preview-info-label">${t('preview_truefalse_count')}</div>
+          <div class="preview-info-value">${tfCount}</div>
+        </div>
+      `;
+    }
     document.getElementById('previewInfo').innerHTML = infoHtml;
 
     // Sample questions (first 3)
     const samples = exam.questions.slice(0, 3);
-    const questionsHtml = samples.map((q, i) => `
-      <div class="preview-question">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-2);">
-          <span class="preview-question-text">${t('question_word')} ${i + 1}: ${escapeHtml(q.text)}</span>
-          <span class="preview-question-type ${q.type === 'multiple' ? 'type-multiple' : 'type-single'}">
-            ${q.type === 'multiple' ? t('multiple_label') : t('single_label')}
-          </span>
+    const questionsHtml = samples.map((q, i) => {
+      let typeClass, typeLabel;
+      if (q.type === 'truefalse') {
+        typeClass = 'type-truefalse';
+        typeLabel = t('truefalse_label');
+      } else if (q.type === 'multiple') {
+        typeClass = 'type-multiple';
+        typeLabel = t('multiple_label');
+      } else {
+        typeClass = 'type-single';
+        typeLabel = t('single_label');
+      }
+      // Options display differs for TF
+      const optionsDisplay = q.type === 'truefalse'
+        ? `<div style="padding-left: var(--space-4); display: flex; gap: var(--space-3); margin-top: var(--space-2);">
+             <span style="background: var(--success-bg); color: var(--success-light); border: 1px solid var(--success-border); padding: 2px 12px; border-radius: var(--radius-sm); font-weight: 600; font-size: var(--font-sm);">✓ Đ</span>
+             <span style="background: var(--error-bg); color: var(--error-light); border: 1px solid var(--error-border); padding: 2px 12px; border-radius: var(--radius-sm); font-weight: 600; font-size: var(--font-sm);">✗ S</span>
+           </div>`
+        : `<div style="padding-left: var(--space-4); color: var(--text-muted); font-size: var(--font-sm);">
+             ${q.options.map(o => `<div>• ${escapeHtml(o)}</div>`).join('')}
+           </div>`;
+
+      return `
+        <div class="preview-question">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-2);">
+            <span class="preview-question-text">${t('question_word')} ${i + 1}: ${escapeHtml(q.text)}</span>
+            <span class="preview-question-type ${typeClass}">
+              ${typeLabel}
+            </span>
+          </div>
+          ${optionsDisplay}
         </div>
-        <div style="padding-left: var(--space-4); color: var(--text-muted); font-size: var(--font-sm);">
-          ${q.options.map(o => `<div>• ${escapeHtml(o)}</div>`).join('')}
-        </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
     document.getElementById('previewQuestions').innerHTML = questionsHtml;
   }
 
@@ -475,10 +511,13 @@ window.Dexams = window.Dexams || {};
 
     let html = '';
     for (const exam of exams) {
-      const singleCount = exam.questions.filter(q => q.type !== 'multiple').length;
+      const singleCount = exam.questions.filter(q => q.type === 'single').length;
       const multiCount = exam.questions.filter(q => q.type === 'multiple').length;
+      const tfCount = exam.questions.filter(q => q.type === 'truefalse').length;
+      const typeKinds = (singleCount > 0 ? 1 : 0) + (multiCount > 0 ? 1 : 0) + (tfCount > 0 ? 1 : 0);
       let typeLabel = '';
-      if (singleCount > 0 && multiCount > 0) typeLabel = t('mixed_label');
+      if (typeKinds > 1) typeLabel = t('mixed_label');
+      else if (tfCount > 0) typeLabel = t('truefalse_label');
       else if (multiCount > 0) typeLabel = t('multiple_label');
       else typeLabel = t('single_label');
 
@@ -648,14 +687,21 @@ window.Dexams = window.Dexams || {};
 
     // Type badge
     const badge = document.getElementById('questionTypeBadge');
-    if (q.type === 'multiple') {
+    const hintEl = document.getElementById('questionHint');
+    if (q.type === 'truefalse') {
+      badge.textContent = t('truefalse_label');
+      badge.className = 'question-type-badge type-truefalse';
+      hintEl.textContent = t('hint_truefalse');
+      hintEl.classList.remove('hidden');
+    } else if (q.type === 'multiple') {
       badge.textContent = t('multiple_label');
       badge.className = 'question-type-badge type-multiple';
-      document.getElementById('questionHint').classList.remove('hidden');
+      hintEl.textContent = t('hint_multi');
+      hintEl.classList.remove('hidden');
     } else {
       badge.textContent = t('single_label');
       badge.className = 'question-type-badge type-single';
-      document.getElementById('questionHint').classList.add('hidden');
+      hintEl.classList.add('hidden');
     }
 
     // Question text
@@ -663,25 +709,50 @@ window.Dexams = window.Dexams || {};
 
     // Options
     const answer = engine.getAnswer(idx);
-    const optionsHtml = q.options.map((opt, oi) => {
-      let selected = false;
-      if (q.type === 'multiple' && Array.isArray(answer)) {
-        selected = answer.includes(oi);
-      } else {
-        selected = answer === oi;
-      }
+    const isTF = q.type === 'truefalse';
 
-      const letter = String.fromCharCode(65 + oi);
-      const markerClass = q.type === 'multiple' ? 'option-marker checkbox-marker' : 'option-marker';
-
-      return `
-        <li class="option-item ${selected ? 'selected' : ''}" data-option="${oi}">
-          <span class="${markerClass}">${selected ? '✓' : letter}</span>
-          <span class="option-text">${escapeHtml(opt)}</span>
+    if (isTF) {
+      // Render True/False as two large buttons in a grid
+      const selectedTrue = answer === 0;
+      const selectedFalse = answer === 1;
+      const optionsHtml = `
+        <li class="tf-btn tf-btn-true ${selectedTrue ? 'selected' : ''}" data-option="0">
+          <span class="tf-btn-icon">✓</span>
+          <span class="tf-btn-label">Đ</span>
+          <span class="tf-btn-text">${currentLang === 'vi' ? 'Đúng' : 'True'}</span>
+        </li>
+        <li class="tf-btn tf-btn-false ${selectedFalse ? 'selected' : ''}" data-option="1">
+          <span class="tf-btn-icon">✗</span>
+          <span class="tf-btn-label">S</span>
+          <span class="tf-btn-text">${currentLang === 'vi' ? 'Sai' : 'False'}</span>
         </li>
       `;
-    }).join('');
-    document.getElementById('optionsList').innerHTML = optionsHtml;
+      const listEl = document.getElementById('optionsList');
+      listEl.innerHTML = optionsHtml;
+      listEl.className = 'options-list tf-grid';
+    } else {
+      const optionsHtml = q.options.map((opt, oi) => {
+        let selected = false;
+        if (q.type === 'multiple' && Array.isArray(answer)) {
+          selected = answer.includes(oi);
+        } else {
+          selected = answer === oi;
+        }
+
+        const letter = String.fromCharCode(65 + oi);
+        const markerClass = q.type === 'multiple' ? 'option-marker checkbox-marker' : 'option-marker';
+
+        return `
+          <li class="option-item ${selected ? 'selected' : ''}" data-option="${oi}">
+            <span class="${markerClass}">${selected ? '✓' : letter}</span>
+            <span class="option-text">${escapeHtml(opt)}</span>
+          </li>
+        `;
+      }).join('');
+      const listEl = document.getElementById('optionsList');
+      listEl.innerHTML = optionsHtml;
+      listEl.className = 'options-list';
+    }
 
     // Progress
     const progress = engine.getProgress();
@@ -928,49 +999,92 @@ window.Dexams = window.Dexams || {};
       const statusClass = d.isSkipped ? 'status-skipped' : (d.isCorrect ? 'status-correct' : 'status-incorrect');
       const statusText = d.isSkipped ? t('skipped_label') : (d.isCorrect ? t('correct_label') : t('incorrect_label'));
 
-      // Build options HTML
-      const optionsHtml = q.options.map((opt, oi) => {
-        const isCorrectOption = q.type === 'multiple'
-          ? (q.correctAnswers || []).includes(oi)
-          : q.correctAnswer === oi;
+      let optionsHtml;
+      const isTF = q.type === 'truefalse';
 
-        let isSelected = false;
-        if (d.answer !== null && d.answer !== undefined) {
-          isSelected = Array.isArray(d.answer) ? d.answer.includes(oi) : d.answer === oi;
-        }
+      if (isTF) {
+        // Build True/False review with Đ/S buttons
+        const correctIdx = q.correctAnswer;
+        const selectedIdx = d.answer;
 
-        let cls = '';
-        let badgeHtml = '';
-        const letter = String.fromCharCode(65 + oi);
-        const markerClass = q.type === 'multiple' ? 'option-marker checkbox-marker' : 'option-marker';
-        let markerContent = letter;
+        const makeBtn = (idx, icon, label, fullText) => {
+          const isCorrect = idx === correctIdx;
+          const isSelected = selectedIdx === idx;
+          let cls = 'tf-btn ' + (idx === 0 ? 'tf-btn-true' : 'tf-btn-false') + ' tf-btn-review';
+          let badge = '';
 
-        if (isCorrectOption) {
-          if (isSelected) {
-            cls = 'correct';
-            markerContent = '✓';
-            badgeHtml = `<span class="review-badge badge-correct-selected">${t('badge_correct_selected')}</span>`;
-          } else {
-            cls = 'correct-missed';
-            markerContent = '✓';
-            badgeHtml = `<span class="review-badge badge-correct-missed">${t('badge_correct_missed')}</span>`;
+          if (isCorrect && isSelected) {
+            cls += ' review-correct';
+            badge = `<span class="review-badge badge-correct-selected">${t('badge_correct_selected')}</span>`;
+          } else if (isCorrect && !isSelected) {
+            cls += ' review-correct-missed';
+            badge = `<span class="review-badge badge-correct-missed">${t('badge_correct_missed')}</span>`;
+          } else if (!isCorrect && isSelected) {
+            cls += ' review-incorrect';
+            badge = `<span class="review-badge badge-incorrect-selected">${t('badge_incorrect_selected')}</span>`;
           }
-        } else {
-          if (isSelected) {
-            cls = 'incorrect';
-            markerContent = '✗';
-            badgeHtml = `<span class="review-badge badge-incorrect-selected">${t('badge_incorrect_selected')}</span>`;
-          }
-        }
 
-        return `
-          <li class="option-item ${cls}" style="cursor: default;">
-            <span class="${markerClass}">${markerContent}</span>
-            <span class="option-text">${escapeHtml(opt)}</span>
-            ${badgeHtml}
-          </li>
+          return `
+            <li class="${cls}" style="cursor: default;">
+              <span class="tf-btn-icon">${icon}</span>
+              <span class="tf-btn-label">${label}</span>
+              <span class="tf-btn-text">${fullText}</span>
+              ${badge}
+            </li>
+          `;
+        };
+
+        optionsHtml = `
+          <ul class="options-list tf-grid tf-grid-review">
+            ${makeBtn(0, '✓', 'Đ', currentLang === 'vi' ? 'Đúng' : 'True')}
+            ${makeBtn(1, '✗', 'S', currentLang === 'vi' ? 'Sai' : 'False')}
+          </ul>
         `;
-      }).join('');
+      } else {
+        // Standard options review
+        optionsHtml = '<ul class="options-list">' + q.options.map((opt, oi) => {
+          const isCorrectOption = q.type === 'multiple'
+            ? (q.correctAnswers || []).includes(oi)
+            : q.correctAnswer === oi;
+
+          let isSelected = false;
+          if (d.answer !== null && d.answer !== undefined) {
+            isSelected = Array.isArray(d.answer) ? d.answer.includes(oi) : d.answer === oi;
+          }
+
+          let cls = '';
+          let badgeHtml = '';
+          const letter = String.fromCharCode(65 + oi);
+          const markerClass = q.type === 'multiple' ? 'option-marker checkbox-marker' : 'option-marker';
+          let markerContent = letter;
+
+          if (isCorrectOption) {
+            if (isSelected) {
+              cls = 'correct';
+              markerContent = '✓';
+              badgeHtml = `<span class="review-badge badge-correct-selected">${t('badge_correct_selected')}</span>`;
+            } else {
+              cls = 'correct-missed';
+              markerContent = '✓';
+              badgeHtml = `<span class="review-badge badge-correct-missed">${t('badge_correct_missed')}</span>`;
+            }
+          } else {
+            if (isSelected) {
+              cls = 'incorrect';
+              markerContent = '✗';
+              badgeHtml = `<span class="review-badge badge-incorrect-selected">${t('badge_incorrect_selected')}</span>`;
+            }
+          }
+
+          return `
+            <li class="option-item ${cls}" style="cursor: default;">
+              <span class="${markerClass}">${markerContent}</span>
+              <span class="option-text">${escapeHtml(opt)}</span>
+              ${badgeHtml}
+            </li>
+          `;
+        }).join('') + '</ul>';
+      }
 
       const explanationHtml = q.explanation
         ? `<div class="review-explanation">${escapeHtml(q.explanation)}</div>`
@@ -983,7 +1097,7 @@ window.Dexams = window.Dexams || {};
             <span class="review-status ${statusClass}">${statusText}</span>
           </div>
           <div class="question-text" style="margin-bottom: var(--space-4);">${escapeHtml(q.text)}</div>
-          <ul class="options-list">${optionsHtml}</ul>
+          ${optionsHtml}
           ${explanationHtml}
         </div>
       `;

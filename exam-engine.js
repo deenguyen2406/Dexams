@@ -152,7 +152,7 @@ window.Dexams = window.Dexams || {};
         }
         this.answers[questionIndex] = current.length > 0 ? [...current] : null;
       } else {
-        // Single choice: toggle or set
+        // Single choice or True/False: toggle or set
         if (this.answers[questionIndex] === answerIndex) {
           this.answers[questionIndex] = null; // deselect
         } else {

@@ -135,6 +135,20 @@
       ],
       "correctAnswers": [0, 1, 3],
       "explanation": "Nước nguyên chất không màu, không mùi, không vị; sôi ở 100°C và đông đặc ở 0°C. Nước nguyên chất dẫn điện rất kém."
+    },
+    {
+      "id": 11,
+      "text": "Trái Đất là hành tinh lớn nhất trong Hệ Mặt Trời?",
+      "type": "truefalse",
+      "correctAnswer": false,
+      "explanation": "Sao Mộc (Jupiter) là hành tinh lớn nhất trong Hệ Mặt Trời, không phải Trái Đất."
+    },
+    {
+      "id": 12,
+      "text": "Nước có công thức hóa học là H₂O?",
+      "type": "truefalse",
+      "correctAnswer": true,
+      "explanation": "Nước có công thức hóa học là H₂O, gồm 2 nguyên tử hydro và 1 nguyên tử oxy."
     }
   ]
 }

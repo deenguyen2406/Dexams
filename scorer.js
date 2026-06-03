@@ -38,6 +38,7 @@ window.Dexams = window.Dexams || {};
           isCorrect = correctSet.size === answerSet.size &&
             [...correctSet].every(a => answerSet.has(a));
         } else {
+          // Single choice or True/False
           const correctIdx = q.correctAnswer !== null && q.correctAnswer !== undefined
             ? q.correctAnswer
             : (q.correctAnswers ? q.correctAnswers[0] : 0);

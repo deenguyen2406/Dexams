@@ -45,19 +45,49 @@ window.Dexams = window.Dexams || {};
         return;
       }
 
-      if (!q.options || !Array.isArray(q.options) || q.options.length < 2) {
-        errors.push(`Question ${num}: must have at least 2 options.`);
-        return;
-      }
-
       // Determine type
       let type = 'single';
-      if (q.type === 'multiple' || q.type === 'multi' || q.type === 'checkbox') {
+      if (q.type === 'truefalse' || q.type === 'true_false' || q.type === 'tf' || q.type === 'boolean') {
+        type = 'truefalse';
+      } else if (q.type === 'multiple' || q.type === 'multi' || q.type === 'checkbox') {
         type = 'multiple';
       } else if (Array.isArray(q.correctAnswers) && q.correctAnswers.length > 0) {
         type = 'multiple';
       } else if (Array.isArray(q.correctAnswer)) {
         type = 'multiple';
+      }
+
+      // Handle True/False questions: auto-generate options if needed
+      if (type === 'truefalse') {
+        // Accept boolean or 0/1 as correctAnswer
+        let correctAnswer = 0;
+        if (q.correctAnswer === false || q.correctAnswer === 1 || q.correctAnswer === 'false' || q.correctAnswer === 'Sai') {
+          correctAnswer = 1; // False/Sai
+        } else {
+          correctAnswer = 0; // True/Đúng
+        }
+
+        // Auto-generate options if not provided or not exactly 2
+        let options = ['Đúng', 'Sai'];
+        if (q.options && Array.isArray(q.options) && q.options.length === 2) {
+          options = q.options.map(String);
+        }
+
+        questions.push({
+          id: q.id || num,
+          text: q.text || q.question,
+          type: 'truefalse',
+          options: options,
+          correctAnswer: correctAnswer,
+          correctAnswers: null,
+          explanation: q.explanation || ''
+        });
+        return;
+      }
+
+      if (!q.options || !Array.isArray(q.options) || q.options.length < 2) {
+        errors.push(`Question ${num}: must have at least 2 options.`);
+        return;
       }
 
       // Normalise correct answer(s)
@@ -137,21 +167,85 @@ window.Dexams = window.Dexams || {};
     const ANSWER_REGEX = /^(?:Đáp án|Answer|Ans)\s*[:.]\s*(.+)/i;
     const EXPLANATION_REGEX = /^(?:Giải thích|Explanation|Explain)\s*[:.]\s*(.+)/i;
 
+    // True/False answer patterns
+    const TF_TRUE_PATTERN = /^(?:Đ|Đúng|True|T|ĐÚNG|TRUE)$/i;
+    const TF_FALSE_PATTERN = /^(?:S|Sai|False|F|SAI|FALSE)$/i;
+
+    // Detect [Đ/S] marker in question text
+    const TF_MARKER_REGEX = /^\[Đ\/S\]\s*/i;
+
+    function isTrueFalseQuestion(q) {
+      // 1) Question has [Đ/S] marker → always true/false (no options needed)
+      if (q.isTFMarked) return true;
+
+      // 2) No options at all + answer is Đ/S → true/false
+      if (q.options.length === 0) {
+        const ans = (q.answerRaw || '').trim();
+        return TF_TRUE_PATTERN.test(ans) || TF_FALSE_PATTERN.test(ans);
+      }
+
+      // 3) Exactly 2 options matching Đúng/Sai or True/False patterns
+      if (q.options.length === 2) {
+        const opt0 = q.options[0].replace(/^[A-Z]\.\s*/, '').trim().toLowerCase();
+        const opt1 = q.options[1].replace(/^[A-Z]\.\s*/, '').trim().toLowerCase();
+        const tfPairs = [
+          ['đúng', 'sai'], ['true', 'false'], ['đ', 's'], ['t', 'f']
+        ];
+        return tfPairs.some(([t, f]) => opt0 === t && opt1 === f);
+      }
+
+      return false;
+    }
+
     function finaliseQuestion() {
       if (!currentQuestion) return;
-
-      if (currentQuestion.options.length < 2) {
-        errors.push(`Question ${currentQuestion.num}: must have at least 2 options.`);
-        return;
-      }
 
       if (!currentQuestion.answerRaw) {
         errors.push(`Question ${currentQuestion.num}: missing answer.`);
         return;
       }
 
-      // Parse answer letters
-      const answerLetters = currentQuestion.answerRaw
+      const answerRawTrimmed = currentQuestion.answerRaw.trim();
+
+      // Check if this is a True/False question
+      const isTF = isTrueFalseQuestion(currentQuestion);
+      if (isTF) {
+        let correctAnswer;
+        if (TF_TRUE_PATTERN.test(answerRawTrimmed)) {
+          correctAnswer = 0; // 0 = Đúng/True
+        } else if (TF_FALSE_PATTERN.test(answerRawTrimmed)) {
+          correctAnswer = 1; // 1 = Sai/False
+        } else if (/^[A-Z]$/.test(answerRawTrimmed.toUpperCase())) {
+          correctAnswer = answerRawTrimmed.toUpperCase().charCodeAt(0) - 65;
+          if (correctAnswer < 0 || correctAnswer > 1) correctAnswer = 0;
+        } else {
+          errors.push(`Question ${currentQuestion.num}: could not parse True/False answer "${currentQuestion.answerRaw}".`);
+          return;
+        }
+
+        // Clean up [Đ/S] marker from text if present
+        const cleanText = currentQuestion.text.replace(TF_MARKER_REGEX, '').trim();
+
+        questions.push({
+          id: currentQuestion.num,
+          text: cleanText,
+          type: 'truefalse',
+          options: ['Đúng', 'Sai'],
+          correctAnswer: correctAnswer,
+          correctAnswers: null,
+          explanation: currentQuestion.explanation || ''
+        });
+        return;
+      }
+
+      // Standard single/multiple: must have options
+      if (currentQuestion.options.length < 2) {
+        errors.push(`Question ${currentQuestion.num}: must have at least 2 options.`);
+        return;
+      }
+
+      // Parse answer letters (standard single/multiple)
+      const answerLetters = answerRawTrimmed
         .split(/[,\s]+/)
         .map(a => a.trim().toUpperCase())
         .filter(a => /^[A-Z]$/.test(a));
@@ -192,12 +286,15 @@ window.Dexams = window.Dexams || {};
       if (qMatch) {
         finaliseQuestion();
         questionNum++;
+        const rawText = qMatch[2].trim();
+        const isTFMarked = TF_MARKER_REGEX.test(rawText);
         currentQuestion = {
           num: questionNum,
-          text: qMatch[2].trim(),
+          text: rawText,
           options: [],
           answerRaw: null,
-          explanation: ''
+          explanation: '',
+          isTFMarked: isTFMarked
         };
         continue;
       }
