@@ -162,25 +162,26 @@ window.Dexams = window.Dexams || {};
     let currentQuestion = null;
     let questionNum = 0;
 
-    const QUESTION_REGEX = /^(?:Câu|Question|Q)\s*(\d+)\s*[:.]\s*(.+)/i;
+    const QUESTION_REGEX = /^(?:C[âa]u|Question|Q)\s*(\d+)\s*[:.]\s*(.+)/i;
     const OPTION_REGEX = /^([A-Z])\.\s*(.+)/;
-    const ANSWER_REGEX = /^(?:Đáp án|Answer|Ans)\s*[:.]\s*(.+)/i;
-    const EXPLANATION_REGEX = /^(?:Giải thích|Explanation|Explain)\s*[:.]\s*(.+)/i;
+    const ANSWER_REGEX = /^(?:[Đđ\u0110\u0111][\u00e1a]p\s*[aá\u00e1]n|Answer|Ans)\s*[:.]\s*(.+)/i;
+    const EXPLANATION_REGEX = /^(?:Gi[ảa]i\s*th[ií\u00ed]ch|Explanation|Explain)\s*[:.]\s*(.+)/i;
 
-    // True/False answer patterns
-    const TF_TRUE_PATTERN = /^(?:Đ|Đúng|True|T|ĐÚNG|TRUE)$/i;
-    const TF_FALSE_PATTERN = /^(?:S|Sai|False|F|SAI|FALSE)$/i;
+    // True/False answer patterns - accept Đ/Đúng/True/T/S/Sai/False/F
+    const TF_TRUE_PATTERN = /^(?:\u0110|\u0111|Đ|đ|D|d|True|T|\u0110[uú]ng|\u0111[uú]ng|Đúng|đúng)$/i;
+    const TF_FALSE_PATTERN = /^(?:S|s|Sai|sai|False|F|f)$/i;
 
-    // Detect [Đ/S] marker in question text
-    const TF_MARKER_REGEX = /^\[Đ\/S\]\s*/i;
+    // Detect [Đ/S] or [D/S] marker in question text — Unicode-safe
+    const TF_MARKER_REGEX = /^\[(?:\u0110|\u0111|Đ|đ|D|d)\/(?:S|s)\]\s*/i;
 
     function isTrueFalseQuestion(q) {
       // 1) Question has [Đ/S] marker → always true/false (no options needed)
       if (q.isTFMarked) return true;
 
-      // 2) No options at all + answer is Đ/S → true/false
+      const ans = (q.answerRaw || '').trim();
+
+      // 2) No options at all + answer matches Đ/S pattern → true/false
       if (q.options.length === 0) {
-        const ans = (q.answerRaw || '').trim();
         return TF_TRUE_PATTERN.test(ans) || TF_FALSE_PATTERN.test(ans);
       }
 
@@ -191,7 +192,10 @@ window.Dexams = window.Dexams || {};
         const tfPairs = [
           ['đúng', 'sai'], ['true', 'false'], ['đ', 's'], ['t', 'f']
         ];
-        return tfPairs.some(([t, f]) => opt0 === t && opt1 === f);
+        if (tfPairs.some(([t, f]) => opt0 === t && opt1 === f)) return true;
+
+        // Also check: 2 options + answer is Đ/S/Đúng/Sai (not a letter A-D)
+        if (TF_TRUE_PATTERN.test(ans) || TF_FALSE_PATTERN.test(ans)) return true;
       }
 
       return false;
