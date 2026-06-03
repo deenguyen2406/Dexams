@@ -818,9 +818,9 @@ window.Dexams = window.Dexams || {};
   }
 
   function setupExam() {
-    // Options click
+    // Options click (handles both regular .option-item and .tf-btn for True/False)
     document.getElementById('optionsList').addEventListener('click', (e) => {
-      const item = e.target.closest('.option-item');
+      const item = e.target.closest('.option-item') || e.target.closest('.tf-btn');
       if (!item || !engine) return;
       const optionIdx = parseInt(item.getAttribute('data-option'));
       engine.selectAnswer(engine.currentIndex, optionIdx);
