@@ -107,6 +107,9 @@ window.Dexams = window.Dexams || {};
       modal_timeup_confirm: 'View Results',
       modal_delete_title: 'Delete Exam?',
       modal_delete_body: 'Are you sure you want to delete "{title}"? This action cannot be undone.',
+      modal_delete_passcode_label: 'Enter passcode to confirm deletion:',
+      modal_delete_passcode_placeholder: 'Enter passcode...',
+      modal_delete_wrong_passcode: 'Incorrect passcode!',
       modal_delete_confirm: 'Delete',
       toast_imported: 'Exam imported successfully!',
       toast_deleted: 'Exam deleted.',
@@ -214,6 +217,9 @@ window.Dexams = window.Dexams || {};
       modal_timeup_confirm: 'Xem kết quả',
       modal_delete_title: 'Xóa đề thi?',
       modal_delete_body: 'Bạn có chắc muốn xóa "{title}"? Hành động này không thể hoàn tác.',
+      modal_delete_passcode_label: 'Nhập mật mã để xác nhận xóa:',
+      modal_delete_passcode_placeholder: 'Nhập mật mã...',
+      modal_delete_wrong_passcode: 'Sai mật mã!',
       modal_delete_confirm: 'Xóa',
       toast_imported: 'Nhập đề thi thành công!',
       toast_deleted: 'Đã xóa đề thi.',
@@ -242,6 +248,8 @@ window.Dexams = window.Dexams || {};
   /* ================================================
      APP STATE
      ================================================ */
+  const DELETE_PASSCODE = '240629';
+
   let currentLang = 'vi'; // default, will be loaded from settings in init()
   let currentPage = 'home';
   let engine = null;
@@ -558,13 +566,26 @@ window.Dexams = window.Dexams || {};
   }
 
   function deleteExam(examId, title) {
+    const bodyHtml = `
+      <p style="margin-bottom: var(--space-4);">${escapeHtml(t('modal_delete_body').replace('{title}', title))}</p>
+      <label style="display: block; font-size: var(--font-sm); color: var(--text-secondary); margin-bottom: var(--space-2); font-weight: 600;">${escapeHtml(t('modal_delete_passcode_label'))}</label>
+      <input type="password" id="deletePasscodeInput" class="form-input" placeholder="${escapeHtml(t('modal_delete_passcode_placeholder'))}" style="width: 100%; margin-bottom: var(--space-2);" autocomplete="off">
+      <div id="deletePasscodeError" style="color: var(--error-light); font-size: var(--font-sm); min-height: 1.4em;"></div>
+    `;
     showModal(
       t('modal_delete_title'),
-      t('modal_delete_body').replace('{title}', title),
+      bodyHtml,
       [
         { text: t('btn_cancel'), class: 'btn-secondary', action: hideModal },
         {
           text: t('modal_delete_confirm'), class: 'btn-danger', action: async () => {
+            const input = document.getElementById('deletePasscodeInput');
+            const errorEl = document.getElementById('deletePasscodeError');
+            if (!input || input.value !== DELETE_PASSCODE) {
+              if (errorEl) errorEl.textContent = t('modal_delete_wrong_passcode');
+              if (input) { input.value = ''; input.focus(); input.classList.add('shake'); setTimeout(() => input.classList.remove('shake'), 500); }
+              return;
+            }
             await ExamStorage.delete(examId);
             hideModal();
             showToast(t('toast_deleted'), 'info');
@@ -572,8 +593,14 @@ window.Dexams = window.Dexams || {};
             renderHome();
           }
         }
-      ]
+      ],
+      true // useHtmlBody
     );
+    // Focus the passcode input after modal is shown
+    setTimeout(() => {
+      const input = document.getElementById('deletePasscodeInput');
+      if (input) input.focus();
+    }, 100);
   }
 
   /* ================================================
@@ -1203,9 +1230,14 @@ window.Dexams = window.Dexams || {};
   /* ================================================
      MODAL
      ================================================ */
-  function showModal(title, body, buttons) {
+  function showModal(title, body, buttons, useHtmlBody) {
     document.getElementById('modalTitle').textContent = title;
-    document.getElementById('modalBody').textContent = body;
+    const bodyEl = document.getElementById('modalBody');
+    if (useHtmlBody) {
+      bodyEl.innerHTML = body;
+    } else {
+      bodyEl.textContent = body;
+    }
 
     const actionsEl = document.getElementById('modalActions');
     actionsEl.innerHTML = '';
