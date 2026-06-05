@@ -131,11 +131,13 @@ window.Dexams = window.Dexams || {};
       return { exam: null, errors };
     }
 
+    const hasPassage = questions.some(q => q.passage);
     const exam = {
       title: data.title || '',
       subject: data.subject || '',
       questions: questions,
-      totalQuestions: questions.length
+      totalQuestions: questions.length,
+      format: data.format || (hasPassage ? 'passage' : 'standard')
     };
 
     return { exam, errors };
@@ -290,8 +292,15 @@ window.Dexams = window.Dexams || {};
     }
 
     for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
+      const rawLine = lines[i];
+      const line = rawLine.trim();
+
+      if (!line) {
+        if (readingPassageLines && Array.isArray(currentPassage)) {
+          currentPassage.push('');
+        }
+        continue;
+      }
 
       if (PASSAGE_END_REGEX.test(line)) {
         currentPassage = null;
@@ -374,12 +383,14 @@ window.Dexams = window.Dexams || {};
       return { exam: null, errors };
     }
 
+    const hasPassage = questions.some(q => q.passage);
     return {
       exam: {
         title: '',
         subject: '',
         questions: questions,
-        totalQuestions: questions.length
+        totalQuestions: questions.length,
+        format: hasPassage ? 'passage' : 'standard'
       },
       errors
     };

@@ -128,7 +128,7 @@
         <!-- Format guide -->
         <div class="glass-card mt-6" id="formatGuide">
           <h3 class="mb-4" data-i18n="format_guide_title">📖 Import Format Guide</h3>
-          <div class="format-guide-grid">
+          <div class="format-guide-grid" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--space-6);">
             <div>
               <h4 class="text-primary mb-4">JSON Format</h4>
               <pre style="background: var(--bg-glass); padding: var(--space-4); border-radius: var(--radius-md); font-size: var(--font-xs); overflow-x: auto; color: var(--text-secondary); line-height: 1.6;">{
@@ -142,25 +142,17 @@
       "correctAnswer": 0
     },
     {
-      "text": "Multi-choice?",
-      "type": "multiple",
-      "options": ["A", "B", "C"],
-      "correctAnswers": [0, 2]
-    },
-    {
       "text": "Earth is round?",
       "type": "truefalse",
       "correctAnswer": true,
-      "passage": "Optional reading text"
+      "passage": "Line 1 of reading text...\n\nLine 2 of reading text..."
     }
   ]
 }</pre>
             </div>
             <div>
-              <h4 class="text-primary mb-4">TXT Format</h4>
-              <pre style="background: var(--bg-glass); padding: var(--space-4); border-radius: var(--radius-md); font-size: var(--font-xs); overflow-x: auto; color: var(--text-secondary); line-height: 1.6;">Đoạn văn: Reading text... (tùy chọn)
-
-Câu 1: Question text?
+              <h4 class="text-primary mb-4" data-i18n="guide_txt_standard">TXT Format: Standard MCQ</h4>
+              <pre style="background: var(--bg-glass); padding: var(--space-4); border-radius: var(--radius-md); font-size: var(--font-xs); overflow-x: auto; color: var(--text-secondary); line-height: 1.6;">Câu 1: Question text?
 A. Option 1
 B. Option 2
 C. Option 3
@@ -168,16 +160,28 @@ D. Option 4
 Đáp án: A
 Giải thích: ... (tùy chọn)
 
-Câu 2: Multi-choice?
+Câu 2: [Đ/S] Mệnh đề đúng sai.
+Đáp án: Đ</pre>
+            </div>
+            <div>
+              <h4 class="text-primary mb-4" data-i18n="guide_txt_passage">TXT Format: Reading Passage</h4>
+              <pre style="background: var(--bg-glass); padding: var(--space-4); border-radius: var(--radius-md); font-size: var(--font-xs); overflow-x: auto; color: var(--text-secondary); line-height: 1.6;">Đoạn văn: Reading text starts here.
+You can write multiple paragraphs.
+
+Paragraph 2 with a blank line before it.
+Paragraph 3 with another blank line.
+
+Câu 1: Question related to the passage?
 A. Option 1
 B. Option 2
 C. Option 3
-Đáp án: A,C
+D. Option 4
+Đáp án: A
 
-Hết đoạn văn (nếu muốn kết thúc đoạn văn)
+Câu 2: Second question...
+Đáp án: B
 
-Câu 3: [Đ/S] Mệnh đề đúng sai.
-Đáp án: Đ</pre>
+Hết đoạn văn (optional)</pre>
             </div>
           </div>
         </div>
@@ -188,6 +192,16 @@ Câu 3: [Đ/S] Mệnh đề đúng sai.
         <div class="page-header">
           <h2 data-i18n="exams_title">Your Exams</h2>
           <button class="btn btn-primary" data-navigate="import" data-i18n="btn_import_new">+ Import New</button>
+        </div>
+
+        <!-- Tab container for standard vs passage format -->
+        <div class="tab-container mb-6" id="examFilterTabs">
+          <button class="tab-btn active" data-filter="standard">
+            📝 <span data-i18n="tab_standard_exams">Standard Quizzes</span>
+          </button>
+          <button class="tab-btn" data-filter="passage">
+            📖 <span data-i18n="tab_passage_exams">Reading Passages</span>
+          </button>
         </div>
 
         <div class="exam-grid" id="examGrid"></div>
@@ -224,7 +238,7 @@ Câu 3: [Đ/S] Mệnh đề đúng sai.
             </div>
 
             <!-- Question Count -->
-            <div class="form-group">
+            <div class="form-group" id="configQuestionCountGroup">
               <label class="form-label" data-i18n="config_question_count">Number of Questions</label>
               <div style="display: flex; align-items: center; gap: var(--space-3);">
                 <input type="range" id="questionCountSlider" min="1" style="flex:1; accent-color: var(--primary);">
@@ -233,7 +247,7 @@ Câu 3: [Đ/S] Mệnh đề đúng sai.
             </div>
 
             <!-- Shuffle -->
-            <div class="form-group">
+            <div class="form-group" id="configShuffleGroup">
               <label class="form-checkbox">
                 <input type="checkbox" id="shuffleToggle">
                 <span data-i18n="config_shuffle">Shuffle question order</span>
@@ -285,19 +299,13 @@ Câu 3: [Đ/S] Mệnh đề đúng sai.
             </div>
             <!-- Question Area -->
             <div class="question-area" id="questionArea">
-            <div class="question-header">
-              <span class="question-number" id="questionNumber">Question 1 / 10</span>
-              <span class="question-type-badge" id="questionTypeBadge"></span>
-            </div>
-            <div class="question-text" id="questionText"></div>
-            <div class="question-hint hidden" id="questionHint" data-i18n="hint_multi">Select all correct answers</div>
-            <ul class="options-list" id="optionsList"></ul>
+            
+            <div id="questionsContainer" class="questions-container"></div>
 
             <div class="question-nav-actions">
               <button class="btn btn-secondary" id="prevQuestionBtn">
                 ← <span data-i18n="btn_prev">Previous</span>
               </button>
-              <button class="btn btn-ghost" id="markReviewBtn" data-i18n="btn_mark_review">🔖 Mark for Review</button>
               <button class="btn btn-primary" id="nextQuestionBtn">
                 <span data-i18n="btn_next">Next</span> →
               </button>

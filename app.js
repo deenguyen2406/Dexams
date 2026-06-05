@@ -131,7 +131,12 @@ window.Dexams = window.Dexams || {};
       created_label: 'Created',
       score_label: 'Score',
       time_label: 'Time',
-      date_label: 'Date'
+      date_label: 'Date',
+      tab_standard_exams: 'Standard Quizzes',
+      tab_passage_exams: 'Reading Passages',
+      passage_title: 'Reading Passage',
+      guide_txt_standard: 'TXT Format: Standard Quiz',
+      guide_txt_passage: 'TXT Format: Reading Passage'
     },
     vi: {
       nav_home: 'Trang chủ',
@@ -241,7 +246,12 @@ window.Dexams = window.Dexams || {};
       created_label: 'Ngày tạo',
       score_label: 'Điểm',
       time_label: 'Thời gian',
-      date_label: 'Ngày'
+      date_label: 'Ngày',
+      tab_standard_exams: 'Trắc nghiệm thường',
+      tab_passage_exams: 'Đọc hiểu (Đoạn văn)',
+      passage_title: 'Đoạn văn',
+      guide_txt_standard: 'Định dạng TXT: Trắc nghiệm thường',
+      guide_txt_passage: 'Định dạng TXT: Đọc hiểu (Đoạn văn)'
     }
   };
 
@@ -257,6 +267,7 @@ window.Dexams = window.Dexams || {};
   let selectedExamId = null;      // exam chosen for config
   let pendingExam = null;         // parsed exam awaiting import confirmation
   let reviewOrigin = 'results';   // tracks where review was opened from
+  let currentExamFilter = 'standard'; // standard or passage
 
   /* ================================================
      I18N FUNCTIONS
@@ -510,7 +521,11 @@ window.Dexams = window.Dexams || {};
     const grid = document.getElementById('examGrid');
     const empty = document.getElementById('emptyExams');
 
-    if (exams.length === 0) {
+    // Filter exams by current tab
+    const filter = currentExamFilter || 'standard';
+    const filteredExams = exams.filter(e => (e.format || 'standard') === filter);
+
+    if (filteredExams.length === 0) {
       grid.classList.add('hidden');
       empty.classList.remove('hidden');
       return;
@@ -520,7 +535,7 @@ window.Dexams = window.Dexams || {};
     grid.classList.remove('hidden');
 
     let html = '';
-    for (const exam of exams) {
+    for (const exam of filteredExams) {
       const singleCount = exam.questions.filter(q => q.type === 'single').length;
       const multiCount = exam.questions.filter(q => q.type === 'multiple').length;
       const tfCount = exam.questions.filter(q => q.type === 'truefalse').length;
@@ -625,6 +640,19 @@ window.Dexams = window.Dexams || {};
     slider.oninput = () => {
       document.getElementById('questionCountDisplay').textContent = slider.value;
     };
+
+    // Lock/Hide settings for Reading Passage format
+    const shuffleGroup = document.getElementById('configShuffleGroup');
+    const countGroup = document.getElementById('configQuestionCountGroup');
+
+    if (exam.format === 'passage') {
+      if (shuffleGroup) shuffleGroup.classList.add('hidden');
+      if (countGroup) countGroup.classList.add('hidden');
+      document.getElementById('shuffleToggle').checked = false; // force false
+    } else {
+      if (shuffleGroup) shuffleGroup.classList.remove('hidden');
+      if (countGroup) countGroup.classList.remove('hidden');
+    }
   }
 
   function setupConfig() {
@@ -703,46 +731,48 @@ window.Dexams = window.Dexams || {};
     updateTimerDisplay(engine.timeRemaining, engine.totalTime);
   }
 
+  function getQuestionsForCurrentView() {
+    if (!engine) return [];
+    const currentIdx = engine.currentIndex;
+    const currentQ = engine.getCurrentQuestion();
+    
+    if ((engine.exam.format || 'standard') !== 'passage' || !currentQ.passage) {
+      return [{ q: currentQ, index: currentIdx }];
+    }
+
+    const grouped = [];
+    // look backwards
+    for (let i = currentIdx; i >= 0; i--) {
+       if (engine.questions[i].passage === currentQ.passage) {
+           grouped.unshift({ q: engine.questions[i], index: i });
+       } else { break; }
+    }
+    // look forwards
+    for (let i = currentIdx + 1; i < engine.questions.length; i++) {
+       if (engine.questions[i].passage === currentQ.passage) {
+           grouped.push({ q: engine.questions[i], index: i });
+       } else { break; }
+    }
+    return grouped;
+  }
+
   function renderQuestion() {
     if (!engine) return;
 
-    const q = engine.getCurrentQuestion();
-    const idx = engine.currentIndex;
+    const grouped = getQuestionsForCurrentView();
+    if (grouped.length === 0) return;
+
     const total = engine.questions.length;
 
-    // Question number
-    document.getElementById('questionNumber').textContent =
-      `${t('question_word')} ${idx + 1} / ${total}`;
-
-    // Type badge
-    const badge = document.getElementById('questionTypeBadge');
-    const hintEl = document.getElementById('questionHint');
-    if (q.type === 'truefalse') {
-      badge.textContent = t('truefalse_label');
-      badge.className = 'question-type-badge type-truefalse';
-      hintEl.textContent = t('hint_truefalse');
-      hintEl.classList.remove('hidden');
-    } else if (q.type === 'multiple') {
-      badge.textContent = t('multiple_label');
-      badge.className = 'question-type-badge type-multiple';
-      hintEl.textContent = t('hint_multi');
-      hintEl.classList.remove('hidden');
-    } else {
-      badge.textContent = t('single_label');
-      badge.className = 'question-type-badge type-single';
-      hintEl.classList.add('hidden');
-    }
-
-    // Question text
-    document.getElementById('questionText').textContent = q.text;
-
-    // Passage
+    // Handle passage area
+    const currentQ = grouped[0].q;
     const passageArea = document.getElementById('passageArea');
     const passageContent = document.getElementById('passageContent');
     const wrapper = document.getElementById('mainContentWrapper');
 
-    if (q.passage) {
-      passageContent.innerHTML = '<p>' + escapeHtml(q.passage).replace(/\n/g, '</p><p>') + '</p>';
+    if (currentQ.passage && (engine.exam.format || 'standard') === 'passage') {
+      const passageHtml = escapeHtml(currentQ.passage).replace(/\n/g, '</p><p>');
+      passageContent.innerHTML = '<p>' + passageHtml + '</p>';
       passageArea.classList.remove('hidden');
       wrapper.classList.add('has-passage');
     } else {
@@ -750,68 +780,95 @@ window.Dexams = window.Dexams || {};
       wrapper.classList.remove('has-passage');
     }
 
-    // Options
-    const answer = engine.getAnswer(idx);
-    const isTF = q.type === 'truefalse';
+    // Build HTML for all grouped questions
+    let html = '';
+    grouped.forEach(item => {
+      const q = item.q;
+      const idx = item.index;
+      const answer = engine.getAnswer(idx);
+      const isTF = q.type === 'truefalse';
 
-    if (isTF) {
-      // Render True/False as two large buttons in a grid
-      const selectedTrue = answer === 0;
-      const selectedFalse = answer === 1;
-      const optionsHtml = `
-        <li class="tf-btn tf-btn-true ${selectedTrue ? 'selected' : ''}" data-option="0">
-          <span class="tf-btn-icon">✓</span>
-          <span class="tf-btn-label">Đ</span>
-          <span class="tf-btn-text">${currentLang === 'vi' ? 'Đúng' : 'True'}</span>
-        </li>
-        <li class="tf-btn tf-btn-false ${selectedFalse ? 'selected' : ''}" data-option="1">
-          <span class="tf-btn-icon">✗</span>
-          <span class="tf-btn-label">S</span>
-          <span class="tf-btn-text">${currentLang === 'vi' ? 'Sai' : 'False'}</span>
-        </li>
-      `;
-      const listEl = document.getElementById('optionsList');
-      listEl.innerHTML = optionsHtml;
-      listEl.className = 'options-list tf-grid';
-    } else {
-      const optionsHtml = q.options.map((opt, oi) => {
-        let selected = false;
-        if (q.type === 'multiple' && Array.isArray(answer)) {
-          selected = answer.includes(oi);
-        } else {
-          selected = answer === oi;
-        }
+      let badgeLabel, badgeClass, hintText;
+      if (isTF) {
+        badgeLabel = t('truefalse_label');
+        badgeClass = 'type-truefalse';
+        hintText = t('hint_truefalse');
+      } else if (q.type === 'multiple') {
+        badgeLabel = t('multiple_label');
+        badgeClass = 'type-multiple';
+        hintText = t('hint_multi');
+      } else {
+        badgeLabel = t('single_label');
+        badgeClass = 'type-single';
+        hintText = '';
+      }
 
-        const letter = String.fromCharCode(65 + oi);
-        const markerClass = q.type === 'multiple' ? 'option-marker checkbox-marker' : 'option-marker';
-
-        return `
-          <li class="option-item ${selected ? 'selected' : ''}" data-option="${oi}">
-            <span class="${markerClass}">${selected ? '✓' : letter}</span>
-            <span class="option-text">${escapeHtml(opt)}</span>
+      let optionsHtml = '';
+      if (isTF) {
+        const selectedTrue = answer === 0;
+        const selectedFalse = answer === 1;
+        optionsHtml = `
+          <li class="tf-btn tf-btn-true ${selectedTrue ? 'selected' : ''}" data-option="0">
+            <span class="tf-btn-icon">✓</span>
+            <span class="tf-btn-label">Đ</span>
+            <span class="tf-btn-text">${currentLang === 'vi' ? 'Đúng' : 'True'}</span>
+          </li>
+          <li class="tf-btn tf-btn-false ${selectedFalse ? 'selected' : ''}" data-option="1">
+            <span class="tf-btn-icon">✗</span>
+            <span class="tf-btn-label">S</span>
+            <span class="tf-btn-text">${currentLang === 'vi' ? 'Sai' : 'False'}</span>
           </li>
         `;
-      }).join('');
-      const listEl = document.getElementById('optionsList');
-      listEl.innerHTML = optionsHtml;
-      listEl.className = 'options-list';
-    }
+      } else {
+        optionsHtml = q.options.map((opt, oi) => {
+          let selected = false;
+          if (q.type === 'multiple' && Array.isArray(answer)) {
+            selected = answer.includes(oi);
+          } else {
+            selected = answer === oi;
+          }
+          const letter = String.fromCharCode(65 + oi);
+          const markerClass = q.type === 'multiple' ? 'option-marker checkbox-marker' : 'option-marker';
+          return `
+            <li class="option-item ${selected ? 'selected' : ''}" data-option="${oi}">
+              <span class="${markerClass}">${selected ? '✓' : letter}</span>
+              <span class="option-text">${escapeHtml(opt)}</span>
+            </li>
+          `;
+        }).join('');
+      }
+
+      const isMarked = engine.isMarked(idx);
+
+      html += `
+        <div class="question-block" id="questionBlock_${idx}">
+          <div class="question-header">
+            <span class="question-number">${t('question_word')} ${idx + 1} / ${total}</span>
+            <div style="display: flex; align-items: center; gap: var(--space-3);">
+              <button class="btn btn-ghost btn-sm mark-btn ${isMarked ? 'text-warning' : ''}" data-qindex="${idx}" title="${t('btn_mark_review')}">🔖</button>
+              <span class="question-type-badge ${badgeClass}">${badgeLabel}</span>
+            </div>
+          </div>
+          <div class="question-text">${escapeHtml(q.text)}</div>
+          ${hintText ? `<div class="question-hint">${hintText}</div>` : ''}
+          <ul class="options-list ${isTF ? 'tf-grid' : ''}" data-qindex="${idx}">
+            ${optionsHtml}
+          </ul>
+        </div>
+      `;
+    });
+
+    document.getElementById('questionsContainer').innerHTML = html;
 
     // Progress
     const progress = engine.getProgress();
     document.getElementById('examProgress').textContent = `${progress.answered}/${progress.total}`;
 
-    // Mark button state
-    const markBtn = document.getElementById('markReviewBtn');
-    if (engine.isMarked(idx)) {
-      markBtn.classList.add('text-warning');
-    } else {
-      markBtn.classList.remove('text-warning');
-    }
-
     // Nav button states
-    document.getElementById('prevQuestionBtn').disabled = idx === 0;
-    document.getElementById('nextQuestionBtn').disabled = idx === total - 1;
+    const firstIdx = grouped[0].index;
+    const lastIdx = grouped[grouped.length - 1].index;
+    document.getElementById('prevQuestionBtn').disabled = firstIdx === 0;
+    document.getElementById('nextQuestionBtn').disabled = lastIdx === total - 1;
 
     updateNavGrid();
   }
@@ -861,29 +918,65 @@ window.Dexams = window.Dexams || {};
   }
 
   function setupExam() {
-    // Options click (handles both regular .option-item and .tf-btn for True/False)
-    document.getElementById('optionsList').addEventListener('click', (e) => {
+    // Options and Mark click delegation
+    document.getElementById('questionsContainer').addEventListener('click', (e) => {
+      if (!engine) return;
+
+      // Handle Option click
       const item = e.target.closest('.option-item') || e.target.closest('.tf-btn');
-      if (!item || !engine) return;
-      const optionIdx = parseInt(item.getAttribute('data-option'));
-      engine.selectAnswer(engine.currentIndex, optionIdx);
-      renderQuestion();
+      if (item) {
+        const list = item.closest('.options-list');
+        if (list) {
+          const qIndex = parseInt(list.getAttribute('data-qindex'));
+          const optionIdx = parseInt(item.getAttribute('data-option'));
+          engine.selectAnswer(qIndex, optionIdx);
+          renderQuestion();
+        }
+        return;
+      }
+
+      // Handle Mark click
+      const markBtn = e.target.closest('.mark-btn');
+      if (markBtn) {
+        const qIndex = parseInt(markBtn.getAttribute('data-qindex'));
+        engine.toggleMark(qIndex);
+        renderQuestion();
+        return;
+      }
     });
 
     // Navigation
     document.getElementById('prevQuestionBtn').addEventListener('click', () => {
-      if (engine && engine.prev()) renderQuestion();
+      if (!engine) return;
+      const grouped = getQuestionsForCurrentView();
+      const firstIdx = grouped[0].index;
+      if (firstIdx > 0) {
+        if ((engine.exam.format || 'standard') === 'passage') {
+           const prevQ = engine.questions[firstIdx - 1];
+           let targetIdx = firstIdx - 1;
+           while (targetIdx > 0 && engine.questions[targetIdx - 1].passage === prevQ.passage) {
+               targetIdx--;
+           }
+           engine.goToQuestion(targetIdx);
+        } else {
+           engine.prev();
+        }
+        renderQuestion();
+      }
     });
 
     document.getElementById('nextQuestionBtn').addEventListener('click', () => {
-      if (engine && engine.next()) renderQuestion();
-    });
-
-    // Mark for review
-    document.getElementById('markReviewBtn').addEventListener('click', () => {
       if (!engine) return;
-      engine.toggleMark(engine.currentIndex);
-      renderQuestion();
+      const grouped = getQuestionsForCurrentView();
+      const lastIdx = grouped[grouped.length - 1].index;
+      if (lastIdx < engine.questions.length - 1) {
+        if ((engine.exam.format || 'standard') === 'passage') {
+           engine.goToQuestion(lastIdx + 1);
+        } else {
+           engine.next();
+        }
+        renderQuestion();
+      }
     });
 
     // Nav grid click
@@ -893,6 +986,13 @@ window.Dexams = window.Dexams || {};
       const idx = parseInt(cell.getAttribute('data-nav'));
       engine.goToQuestion(idx);
       renderQuestion();
+      
+      setTimeout(() => {
+        const block = document.getElementById(`questionBlock_${idx}`);
+        if (block) {
+          block.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }, 50);
     });
 
     // Submit
@@ -1133,8 +1233,20 @@ window.Dexams = window.Dexams || {};
         ? `<div class="review-explanation">${escapeHtml(q.explanation)}</div>`
         : '';
 
+      const passageHtml = q.passage
+        ? `<div class="passage-area" style="margin-bottom: var(--space-4); background: rgba(255, 255, 255, 0.02); padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--border-glass);">
+             <div class="passage-header" style="margin-bottom: var(--space-2); padding-bottom: var(--space-2); border-bottom: 1px solid var(--border-glass); display: flex; align-items: center;">
+               <span class="passage-title" style="font-size: var(--font-sm); font-weight: 700; color: var(--primary-light); text-transform: uppercase; letter-spacing: 0.5px;">${t('passage_title')}</span>
+             </div>
+             <div class="passage-content" style="font-size: var(--font-sm); line-height: 1.6; color: var(--text-secondary);">
+               <p>${escapeHtml(q.passage).replace(/\n/g, '</p><p>')}</p>
+             </div>
+           </div>`
+        : '';
+
       return `
         <div class="review-question">
+          ${passageHtml}
           <div class="review-question-header">
             <span class="question-number">${t('question_word')} ${i + 1}</span>
             <span class="review-status ${statusClass}">${statusText}</span>
@@ -1307,12 +1419,29 @@ window.Dexams = window.Dexams || {};
   /* ================================================
      INITIALIZATION
      ================================================ */
+  function setupExamsTabs() {
+    const tabs = document.getElementById('examFilterTabs');
+    if (!tabs) return;
+
+    tabs.addEventListener('click', (e) => {
+      const btn = e.target.closest('.tab-btn');
+      if (!btn) return;
+
+      document.querySelectorAll('#examFilterTabs .tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      currentExamFilter = btn.getAttribute('data-filter') || 'standard';
+      renderExamList();
+    });
+  }
+
   async function init() {
     // Load saved language from settings
     currentLang = await SettingsStorage.get('lang', 'vi');
 
     // Setup all event listeners
     setupImport();
+    setupExamsTabs();
     setupConfig();
     setupExam();
     setupResults();
