@@ -1137,6 +1137,8 @@ window.Dexams = window.Dexams || {};
     if (!lastResult || !lastResult.details) return;
 
     const section = document.getElementById('reviewSection');
+    let lastPassage = null;
+
     section.innerHTML = lastResult.details.map((d, i) => {
       const q = d.question;
       const statusClass = d.isSkipped ? 'status-skipped' : (d.isCorrect ? 'status-correct' : 'status-incorrect');
@@ -1233,16 +1235,18 @@ window.Dexams = window.Dexams || {};
         ? `<div class="review-explanation">${escapeHtml(q.explanation)}</div>`
         : '';
 
-      const passageHtml = q.passage
-        ? `<div class="passage-area" style="margin-bottom: var(--space-4); background: rgba(255, 255, 255, 0.02); padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--border-glass);">
+      let passageHtml = '';
+      if (q.passage && q.passage !== lastPassage) {
+        passageHtml = `<div class="passage-area" style="margin-bottom: var(--space-4); background: rgba(255, 255, 255, 0.02); padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--border-glass);">
              <div class="passage-header" style="margin-bottom: var(--space-2); padding-bottom: var(--space-2); border-bottom: 1px solid var(--border-glass); display: flex; align-items: center;">
                <span class="passage-title" style="font-size: var(--font-sm); font-weight: 700; color: var(--primary-light); text-transform: uppercase; letter-spacing: 0.5px;">${t('passage_title')}</span>
              </div>
              <div class="passage-content" style="font-size: var(--font-sm); line-height: 1.6; color: var(--text-secondary);">
                <p>${escapeHtml(q.passage).replace(/\n/g, '</p><p>')}</p>
              </div>
-           </div>`
-        : '';
+           </div>`;
+        lastPassage = q.passage;
+      }
 
       return `
         <div class="review-question">
