@@ -534,6 +534,9 @@ window.Dexams = window.Dexams || {};
     empty.classList.add('hidden');
     grid.classList.remove('hidden');
 
+    // Fetch all history once to optimize performance
+    const allHistory = await HistoryStorage.getAll();
+
     let html = '';
     for (const exam of filteredExams) {
       const singleCount = exam.questions.filter(q => q.type === 'single').length;
@@ -546,8 +549,11 @@ window.Dexams = window.Dexams || {};
       else if (multiCount > 0) typeLabel = t('multiple_label');
       else typeLabel = t('single_label');
 
-      const bestScore = await HistoryStorage.getBestScore(exam.id);
-      const attempts = (await HistoryStorage.getByExamId(exam.id)).length;
+      // Compute from pre-fetched history
+      const examHistory = allHistory.filter(r => r.examId === exam.id);
+      const attempts = examHistory.length;
+      const bestScore = attempts > 0 ? Math.max(...examHistory.map(r => r.score || 0)) : 0;
+      
       const lockIcon = exam.passcode ? '🔒 ' : '';
 
       html += `
