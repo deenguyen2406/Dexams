@@ -80,7 +80,8 @@ window.Dexams = window.Dexams || {};
           options: options,
           correctAnswer: correctAnswer,
           correctAnswers: null,
-          explanation: q.explanation || ''
+          explanation: q.explanation || '',
+          passage: q.passage || null
         });
         return;
       }
@@ -120,7 +121,8 @@ window.Dexams = window.Dexams || {};
         options: q.options.map(String),
         correctAnswer: type === 'single' ? correctAnswer : null,
         correctAnswers: type === 'multiple' ? correctAnswers : null,
-        explanation: q.explanation || ''
+        explanation: q.explanation || '',
+        passage: q.passage || null
       });
     });
 
@@ -161,11 +163,15 @@ window.Dexams = window.Dexams || {};
 
     let currentQuestion = null;
     let questionNum = 0;
+    let currentPassage = null;
+    let readingPassageLines = false;
 
     const QUESTION_REGEX = /^(?:C[âa]u|Question|Q)\s*(\d+)\s*[:.]\s*(.+)/i;
     const OPTION_REGEX = /^([A-Z])\.\s*(.+)/;
     const ANSWER_REGEX = /^(?:[Đđ\u0110\u0111][\u00e1a]p\s*[aá\u00e1]n|Answer|Ans)\s*[:.]\s*(.+)/i;
     const EXPLANATION_REGEX = /^(?:Gi[ảa]i\s*th[ií\u00ed]ch|Explanation|Explain)\s*[:.]\s*(.+)/i;
+    const PASSAGE_START_REGEX = /^(?:Đoạn văn|Passage)\s*[:.]?\s*(.*)/i;
+    const PASSAGE_END_REGEX = /^(?:Hết đoạn văn|End passage)\s*[:.]?/i;
 
     // True/False answer patterns - accept Đ/Đúng/True/T/S/Sai/False/F
     const TF_TRUE_PATTERN = /^(?:\u0110|\u0111|Đ|đ|D|d|True|T|\u0110[uú]ng|\u0111[uú]ng|Đúng|đúng)$/i;
@@ -237,7 +243,8 @@ window.Dexams = window.Dexams || {};
           options: ['Đúng', 'Sai'],
           correctAnswer: correctAnswer,
           correctAnswers: null,
-          explanation: currentQuestion.explanation || ''
+          explanation: currentQuestion.explanation || '',
+          passage: currentQuestion.passage
         });
         return;
       }
@@ -277,7 +284,8 @@ window.Dexams = window.Dexams || {};
         options: currentQuestion.options,
         correctAnswer: type === 'single' ? answerIndices[0] : null,
         correctAnswers: type === 'multiple' ? answerIndices : null,
-        explanation: currentQuestion.explanation || ''
+        explanation: currentQuestion.explanation || '',
+        passage: currentQuestion.passage
       });
     }
 
@@ -285,9 +293,27 @@ window.Dexams = window.Dexams || {};
       const line = lines[i].trim();
       if (!line) continue;
 
+      if (PASSAGE_END_REGEX.test(line)) {
+        currentPassage = null;
+        readingPassageLines = false;
+        continue;
+      }
+
+      const pMatch = line.match(PASSAGE_START_REGEX);
+      if (pMatch) {
+        currentPassage = pMatch[1] ? [pMatch[1]] : [];
+        readingPassageLines = true;
+        continue;
+      }
+
       // Try matching question start
       const qMatch = line.match(QUESTION_REGEX);
       if (qMatch) {
+        readingPassageLines = false;
+        if (Array.isArray(currentPassage)) {
+           currentPassage = currentPassage.join('\n').trim();
+           if (!currentPassage) currentPassage = null;
+        }
         finaliseQuestion();
         questionNum++;
         const rawText = qMatch[2].trim();
@@ -298,8 +324,16 @@ window.Dexams = window.Dexams || {};
           options: [],
           answerRaw: null,
           explanation: '',
-          isTFMarked: isTFMarked
+          isTFMarked: isTFMarked,
+          passage: currentPassage
         };
+        continue;
+      }
+
+      if (readingPassageLines) {
+        if (Array.isArray(currentPassage)) {
+            currentPassage.push(line);
+        }
         continue;
       }
 

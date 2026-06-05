@@ -1171,6 +1171,63 @@ input, select, textarea {
   align-items: start;
 }
 
+.main-content-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-width: 0; /* prevent flex blowout */
+}
+
+@media (min-width: 1024px) {
+  .main-content-wrapper.has-passage {
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  .main-content-wrapper.has-passage .passage-area {
+    flex: 1;
+    position: sticky;
+    top: 150px;
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
+  }
+  .main-content-wrapper.has-passage .question-area {
+    flex: 1;
+  }
+}
+
+.passage-area {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.passage-header {
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border-glass);
+}
+
+.passage-title {
+  font-size: var(--font-lg);
+  font-weight: 700;
+  color: var(--primary-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.passage-content {
+  font-size: var(--font-base);
+  line-height: 1.8;
+  color: var(--text-primary);
+}
+
+.passage-content p {
+  margin-bottom: var(--space-4);
+}
+
 /* Timer Bar */
 .exam-timer-bar {
   background: var(--bg-card);

@@ -1,0 +1,43 @@
+Đoạn văn: We always went to Ireland in June. Ever since the four of us began to go on holidays together we had spent the first fortnight of the month at Glencorn Lodge in County Antrim.
+It's a large house by the sea, not far from the village of Ardbeag.
+
+Câu 1: Where did the group spend their holidays in June?
+A. England
+B. Scotland
+C. County Antrim
+D. Wales
+Đáp án: C
+Giải thích: Dựa vào câu "we had spent the first fortnight of the month at Glencorn Lodge in County Antrim."
+
+Câu 2: How long did they stay there each year?
+A. A week
+B. A fortnight
+C. A month
+D. A few days
+Đáp án: B
+
+Đoạn văn: The term "machine learning" was coined in 1959 by Arthur Samuel, an American computer scientist. Machine learning explores the study and construction of algorithms that can learn from and make predictions on data.
+It is a core subfield of artificial intelligence.
+
+Câu 3: Who coined the term "machine learning"?
+A. Alan Turing
+B. Arthur Samuel
+C. John McCarthy
+D. Marvin Minsky
+Đáp án: B
+
+Câu 4: In what year was the term coined?
+A. 1950
+B. 1956
+C. 1959
+D. 1965
+Đáp án: C
+
+Hết đoạn văn
+
+Câu 5: Which of the following is a prime number?
+A. 4
+B. 6
+C. 7
+D. 9
+Đáp án: C

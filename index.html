@@ -150,14 +150,17 @@
     {
       "text": "Earth is round?",
       "type": "truefalse",
-      "correctAnswer": true
+      "correctAnswer": true,
+      "passage": "Optional reading text"
     }
   ]
 }</pre>
             </div>
             <div>
               <h4 class="text-primary mb-4">TXT Format</h4>
-              <pre style="background: var(--bg-glass); padding: var(--space-4); border-radius: var(--radius-md); font-size: var(--font-xs); overflow-x: auto; color: var(--text-secondary); line-height: 1.6;">Câu 1: Question text?
+              <pre style="background: var(--bg-glass); padding: var(--space-4); border-radius: var(--radius-md); font-size: var(--font-xs); overflow-x: auto; color: var(--text-secondary); line-height: 1.6;">Đoạn văn: Reading text... (tùy chọn)
+
+Câu 1: Question text?
 A. Option 1
 B. Option 2
 C. Option 3
@@ -170,6 +173,8 @@ A. Option 1
 B. Option 2
 C. Option 3
 Đáp án: A,C
+
+Hết đoạn văn (nếu muốn kết thúc đoạn văn)
 
 Câu 3: [Đ/S] Mệnh đề đúng sai.
 Đáp án: Đ</pre>
@@ -269,8 +274,17 @@ Câu 3: [Đ/S] Mệnh đề đúng sai.
             <p data-i18n="pause_desc" style="color: var(--text-secondary); margin: var(--space-4) 0;">Your timer is stopped. The questions are hidden to prevent cheating.</p>
             <button class="btn btn-primary btn-lg" id="resumeExamBtn" data-i18n="btn_resume">▶ Resume Exam</button>
           </div>
-          <!-- Question Area -->
-          <div class="question-area" id="questionArea">
+          <!-- Main Content Wrapper -->
+          <div class="main-content-wrapper" id="mainContentWrapper">
+            <!-- Passage Area -->
+            <div class="passage-area hidden" id="passageArea">
+              <div class="passage-header">
+                <span class="passage-title" data-i18n="passage_title">Reading Passage</span>
+              </div>
+              <div class="passage-content" id="passageContent"></div>
+            </div>
+            <!-- Question Area -->
+            <div class="question-area" id="questionArea">
             <div class="question-header">
               <span class="question-number" id="questionNumber">Question 1 / 10</span>
               <span class="question-type-badge" id="questionTypeBadge"></span>
@@ -288,6 +302,7 @@ Câu 3: [Đ/S] Mệnh đề đúng sai.
                 <span data-i18n="btn_next">Next</span> →
               </button>
             </div>
+          </div>
           </div>
 
           <!-- Sidebar -->

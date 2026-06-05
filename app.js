@@ -459,10 +459,12 @@ window.Dexams = window.Dexams || {};
              ${q.options.map(o => `<div>• ${escapeHtml(o)}</div>`).join('')}
            </div>`;
 
+      const passageIcon = q.passage ? '📖 ' : '';
+
       return `
         <div class="preview-question">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-2);">
-            <span class="preview-question-text">${t('question_word')} ${i + 1}: ${escapeHtml(q.text)}</span>
+            <span class="preview-question-text">${t('question_word')} ${i + 1}: ${passageIcon}${escapeHtml(q.text)}</span>
             <span class="preview-question-type ${typeClass}">
               ${typeLabel}
             </span>
@@ -733,6 +735,20 @@ window.Dexams = window.Dexams || {};
 
     // Question text
     document.getElementById('questionText').textContent = q.text;
+
+    // Passage
+    const passageArea = document.getElementById('passageArea');
+    const passageContent = document.getElementById('passageContent');
+    const wrapper = document.getElementById('mainContentWrapper');
+
+    if (q.passage) {
+      passageContent.innerHTML = '<p>' + escapeHtml(q.passage).replace(/\n/g, '</p><p>') + '</p>';
+      passageArea.classList.remove('hidden');
+      wrapper.classList.add('has-passage');
+    } else {
+      passageArea.classList.add('hidden');
+      wrapper.classList.remove('has-passage');
+    }
 
     // Options
     const answer = engine.getAnswer(idx);
