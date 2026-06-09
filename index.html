@@ -204,6 +204,13 @@ Hết đoạn văn (optional)</pre>
           </button>
         </div>
 
+        <div class="filter-group mb-6" style="display: flex; gap: var(--space-4); align-items: center; background: var(--bg-glass); padding: var(--space-4); border-radius: var(--radius-lg); border: 1px solid var(--border-glass);">
+          <label for="subjectFilter" class="form-label" style="margin-bottom: 0; min-width: max-content;" data-i18n="filter_subject">Filter by subject:</label>
+          <select id="subjectFilter" class="form-input" style="flex: 1; max-width: 300px;">
+            <option value="all" data-i18n="filter_all_subjects">All Subjects</option>
+          </select>
+        </div>
+
         <div class="exam-grid" id="examGrid"></div>
 
         <div class="empty-state hidden" id="emptyExams">

@@ -136,7 +136,9 @@ window.Dexams = window.Dexams || {};
       tab_passage_exams: 'Reading Passages',
       passage_title: 'Reading Passage',
       guide_txt_standard: 'TXT Format: Standard Quiz',
-      guide_txt_passage: 'TXT Format: Reading Passage'
+      guide_txt_passage: 'TXT Format: Reading Passage',
+      filter_subject: 'Filter by subject:',
+      filter_all_subjects: 'All Subjects'
     },
     vi: {
       nav_home: 'Trang chủ',
@@ -251,7 +253,9 @@ window.Dexams = window.Dexams || {};
       tab_passage_exams: 'Đọc hiểu (Đoạn văn)',
       passage_title: 'Đoạn văn',
       guide_txt_standard: 'Định dạng TXT: Trắc nghiệm thường',
-      guide_txt_passage: 'Định dạng TXT: Đọc hiểu (Đoạn văn)'
+      guide_txt_passage: 'Định dạng TXT: Đọc hiểu (Đoạn văn)',
+      filter_subject: 'Lọc theo môn học:',
+      filter_all_subjects: 'Tất cả môn học'
     }
   };
 
@@ -268,6 +272,7 @@ window.Dexams = window.Dexams || {};
   let pendingExam = null;         // parsed exam awaiting import confirmation
   let reviewOrigin = 'results';   // tracks where review was opened from
   let currentExamFilter = 'standard'; // standard or passage
+  let currentSubjectFilter = 'all'; // filter by subject
 
   /* ================================================
      I18N FUNCTIONS
@@ -520,10 +525,38 @@ window.Dexams = window.Dexams || {};
     const exams = await ExamStorage.getAll();
     const grid = document.getElementById('examGrid');
     const empty = document.getElementById('emptyExams');
+    const subjectSelect = document.getElementById('subjectFilter');
 
     // Filter exams by current tab
     const filter = currentExamFilter || 'standard';
-    const filteredExams = exams.filter(e => (e.format || 'standard') === filter);
+    const examsByFormat = exams.filter(e => (e.format || 'standard') === filter);
+
+    // Populate subject filter
+    const subjects = [...new Set(examsByFormat.map(e => e.subject).filter(s => s && s.trim() !== ''))];
+    subjects.sort();
+    
+    // Save current selection to restore it if possible
+    const currentVal = subjectSelect.value;
+    
+    let optionsHtml = `<option value="all" data-i18n="filter_all_subjects">${t('filter_all_subjects')}</option>`;
+    subjects.forEach(sub => {
+      optionsHtml += `<option value="${escapeHtml(sub)}">${escapeHtml(sub)}</option>`;
+    });
+    subjectSelect.innerHTML = optionsHtml;
+    
+    if (subjects.includes(currentVal)) {
+      subjectSelect.value = currentVal;
+      currentSubjectFilter = currentVal;
+    } else {
+      subjectSelect.value = 'all';
+      currentSubjectFilter = 'all';
+    }
+
+    // Apply subject filter
+    let filteredExams = examsByFormat;
+    if (currentSubjectFilter !== 'all') {
+      filteredExams = examsByFormat.filter(e => e.subject === currentSubjectFilter);
+    }
 
     if (filteredExams.length === 0) {
       grid.classList.add('hidden');
@@ -1429,20 +1462,29 @@ window.Dexams = window.Dexams || {};
   /* ================================================
      INITIALIZATION
      ================================================ */
-  function setupExamsTabs() {
+  function setupFilters() {
     const tabs = document.getElementById('examFilterTabs');
-    if (!tabs) return;
+    if (tabs) {
+      tabs.addEventListener('click', (e) => {
+        const btn = e.target.closest('.tab-btn');
+        if (!btn) return;
 
-    tabs.addEventListener('click', (e) => {
-      const btn = e.target.closest('.tab-btn');
-      if (!btn) return;
+        document.querySelectorAll('#examFilterTabs .tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
 
-      document.querySelectorAll('#examFilterTabs .tab-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
+        currentExamFilter = btn.getAttribute('data-filter') || 'standard';
+        currentSubjectFilter = 'all';
+        renderExamList();
+      });
+    }
 
-      currentExamFilter = btn.getAttribute('data-filter') || 'standard';
-      renderExamList();
-    });
+    const subjectSelect = document.getElementById('subjectFilter');
+    if (subjectSelect) {
+      subjectSelect.addEventListener('change', (e) => {
+        currentSubjectFilter = e.target.value;
+        renderExamList();
+      });
+    }
   }
 
   async function init() {
@@ -1451,7 +1493,7 @@ window.Dexams = window.Dexams || {};
 
     // Setup all event listeners
     setupImport();
-    setupExamsTabs();
+    setupFilters();
     setupConfig();
     setupExam();
     setupResults();
