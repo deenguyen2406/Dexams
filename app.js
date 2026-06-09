@@ -138,7 +138,11 @@ window.Dexams = window.Dexams || {};
       guide_txt_standard: 'TXT Format: Standard Quiz',
       guide_txt_passage: 'TXT Format: Reading Passage',
       filter_subject: 'Filter by subject:',
-      filter_all_subjects: 'All Subjects'
+      filter_all_subjects: 'All Subjects',
+      btn_edit: 'Edit',
+      modal_edit_title: 'Edit Exam',
+      modal_edit_confirm: 'Save Changes',
+      toast_updated: 'Exam updated successfully!'
     },
     vi: {
       nav_home: 'Trang chủ',
@@ -255,7 +259,11 @@ window.Dexams = window.Dexams || {};
       guide_txt_standard: 'Định dạng TXT: Trắc nghiệm thường',
       guide_txt_passage: 'Định dạng TXT: Đọc hiểu (Đoạn văn)',
       filter_subject: 'Lọc theo môn học:',
-      filter_all_subjects: 'Tất cả môn học'
+      filter_all_subjects: 'Tất cả môn học',
+      btn_edit: 'Sửa',
+      modal_edit_title: 'Sửa đề thi',
+      modal_edit_confirm: 'Lưu thay đổi',
+      toast_updated: 'Cập nhật đề thi thành công!'
     }
   };
 
@@ -600,6 +608,7 @@ window.Dexams = window.Dexams || {};
           </div>
           <div class="exam-card-actions">
             <button class="btn btn-primary btn-sm" onclick="Dexams.App.startConfig('${exam.id}')">${t('btn_practice')}</button>
+            <button class="btn btn-secondary btn-sm" onclick="Dexams.App.editExam('${exam.id}')">${t('btn_edit')}</button>
             <button class="btn btn-danger btn-sm" onclick="Dexams.App.deleteExam('${exam.id}', '${escapeHtml(exam.title).replace(/'/g, "\\'")}')">${t('btn_delete')}</button>
           </div>
         </div>
@@ -657,6 +666,59 @@ window.Dexams = window.Dexams || {};
       const input = document.getElementById('deletePasscodeInput');
       if (input) input.focus();
     }, 100);
+  }
+
+  async function editExam(examId) {
+    const exam = await ExamStorage.getById(examId);
+    if (!exam) return;
+
+    if (exam.passcode) {
+      const userCode = prompt(currentLang === 'vi' ? "Nhập passcode để sửa đề thi này:" : "Enter passcode to edit this exam:");
+      if (userCode !== exam.passcode) {
+        showToast(currentLang === 'vi' ? "Sai passcode!" : "Incorrect passcode!", "error");
+        return;
+      }
+    }
+
+    const bodyHtml = `
+      <div class="form-group">
+        <label class="form-label">${escapeHtml(t('preview_exam_title'))}</label>
+        <input type="text" id="editExamTitle" class="form-input" value="${escapeHtml(exam.title || '')}" placeholder="${escapeHtml(t('preview_exam_title'))}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">${escapeHtml(t('preview_exam_subject'))}</label>
+        <input type="text" id="editExamSubject" class="form-input" value="${escapeHtml(exam.subject || '')}" placeholder="${escapeHtml(t('preview_exam_subject'))}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">${escapeHtml(t('preview_exam_passcode'))}</label>
+        <input type="text" id="editExamPasscode" class="form-input" value="${escapeHtml(exam.passcode || '')}" placeholder="${escapeHtml(t('preview_exam_passcode'))}">
+      </div>
+    `;
+
+    showModal(
+      t('modal_edit_title'),
+      bodyHtml,
+      [
+        { text: t('btn_cancel'), class: 'btn-secondary', action: hideModal },
+        {
+          text: t('modal_edit_confirm'), class: 'btn-primary', action: async () => {
+            const titleInput = document.getElementById('editExamTitle');
+            const subjectInput = document.getElementById('editExamSubject');
+            const passcodeInput = document.getElementById('editExamPasscode');
+            
+            exam.title = titleInput.value.trim() || 'Untitled Exam';
+            exam.subject = subjectInput.value.trim();
+            exam.passcode = passcodeInput.value.trim();
+
+            await ExamStorage.save(exam);
+            hideModal();
+            showToast(t('toast_updated'), 'success');
+            renderExamList();
+          }
+        }
+      ],
+      true // useHtmlBody
+    );
   }
 
   /* ================================================
@@ -1590,6 +1652,7 @@ window.Dexams = window.Dexams || {};
   window.Dexams.App = {
     navigateTo,
     startConfig,
+    editExam,
     deleteExam,
     showToast,
     toggleLanguage

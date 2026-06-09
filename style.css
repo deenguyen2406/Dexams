@@ -1080,6 +1080,12 @@ input, select, textarea {
   transition: all var(--transition-base);
 }
 
+.form-input option,
+.form-select option {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
 .form-input:focus,
 .form-select:focus {
   outline: none;
