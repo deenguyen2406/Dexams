@@ -142,7 +142,29 @@ window.Dexams = window.Dexams || {};
       btn_edit: 'Edit',
       modal_edit_title: 'Edit Exam',
       modal_edit_confirm: 'Save Changes',
-      toast_updated: 'Exam updated successfully!'
+      toast_updated: 'Exam updated successfully!',
+      // Flashcard Mode
+      btn_flashcard: '\uD83C\uDFA6 Flashcard',
+      fc_exit: '\u2715 Exit',
+      fc_question_label: 'Question',
+      fc_answer_label: 'Answer',
+      fc_flip_hint: '\uD83D\uDC46 Tap to flip',
+      fc_flip_btn: '\uD83D\uDD04 Flip Card',
+      fc_flip_back: 'Flip Back',
+      fc_know: 'Got it!',
+      fc_dontknow: "Don't know",
+      fc_result_title: 'Flashcard Results',
+      fc_result_know: 'Know \u2705',
+      fc_result_total: 'Total Cards',
+      fc_result_dontknow: "Don't Know \u274C",
+      fc_result_known: 'mastered',
+      fc_review_missed: '\uD83D\uDD01 Review Missed',
+      fc_restart: '\u21BA Restart',
+      fc_back_exams: '\uD83D\uDCDA Back to Exams',
+      fc_msg_perfect: '\uD83C\uDF89 Perfect! You know all the cards!',
+      fc_msg_great: '\uD83D\uDE04 Great job! Almost there!',
+      fc_msg_good: '\uD83D\uDCAA Keep it up! Practice makes perfect.',
+      fc_msg_keep_going: '\uD83D\uDCDA Keep studying! You can do it!'
     },
     vi: {
       nav_home: 'Trang chủ',
@@ -260,10 +282,32 @@ window.Dexams = window.Dexams || {};
       guide_txt_passage: 'Định dạng TXT: Đọc hiểu (Đoạn văn)',
       filter_subject: 'Lọc theo môn học:',
       filter_all_subjects: 'Tất cả môn học',
-      btn_edit: 'Sửa',
-      modal_edit_title: 'Sửa đề thi',
-      modal_edit_confirm: 'Lưu thay đổi',
-      toast_updated: 'Cập nhật đề thi thành công!'
+      btn_edit: 'S\u1EEDa',
+      modal_edit_title: 'S\u1EEDa \u0111\u1EC1 thi',
+      modal_edit_confirm: 'L\u01B0u thay \u0111\u1ED5i',
+      toast_updated: 'C\u1EADp nh\u1EADt \u0111\u1EC1 thi th\u00E0nh c\u00F4ng!',
+      // Flashcard Mode
+      btn_flashcard: '\uD83C\uDFA6 Flashcard',
+      fc_exit: '\u2715 Tho\u00E1t',
+      fc_question_label: 'C\u00E2u h\u1ECFi',
+      fc_answer_label: '\u0110\u00E1p \u00E1n',
+      fc_flip_hint: '\uD83D\uDC46 Nh\u1EA5n \u0111\u1EC3 l\u1EADt th\u1EBB',
+      fc_flip_btn: '\uD83D\uDD04 L\u1EADt th\u1EBB',
+      fc_flip_back: 'L\u1EADt l\u1EA1i',
+      fc_know: 'Bi\u1EBFt r\u1ED3i!',
+      fc_dontknow: 'Ch\u01B0a bi\u1EBFt',
+      fc_result_title: 'K\u1EBFt qu\u1EA3 h\u1ECDc th\u1EBB',
+      fc_result_know: 'Bi\u1EBFt r\u1ED3i \u2705',
+      fc_result_total: 'T\u1ED5ng th\u1EBB',
+      fc_result_dontknow: 'Ch\u01B0a bi\u1EBFt \u274C',
+      fc_result_known: '\u0111\u00E3 thu\u1ED9c',
+      fc_review_missed: '\uD83D\uDD01 \u00D4n l\u1EA1i ch\u01B0a thu\u1ED9c',
+      fc_restart: '\u21BA H\u1ECDc l\u1EA1i t\u1EEB \u0111\u1EA7u',
+      fc_back_exams: '\uD83D\uDCDA V\u1EC1 danh s\u00E1ch \u0111\u1EC1',
+      fc_msg_perfect: '\uD83C\uDF89 Xu\u1EA5t s\u1EAFc! B\u1EA1n \u0111\u00E3 thu\u1ED9c h\u1EBFt!',
+      fc_msg_great: '\uD83D\uDE04 Tuy\u1EC7t v\u1EDD i! G\u1EA7n thu\u1ED9c h\u1EBFt r\u1ED3i!',
+      fc_msg_good: '\uD83D\uDCAA C\u1ED1 l\u00EAn! Luy\u1EC7n t\u1EADp nhi\u1EC1u th\u00EAm nh\u00E9.',
+      fc_msg_keep_going: '\uD83D\uDCDA Ti\u1EBFp t\u1EE5c h\u1ECDc! B\u1EA1n l\u00E0m \u0111\u01B0\u1EE3c!'
     }
   };
 
@@ -281,6 +325,15 @@ window.Dexams = window.Dexams || {};
   let reviewOrigin = 'results';   // tracks where review was opened from
   let currentExamFilter = 'standard'; // standard or passage
   let currentSubjectFilter = 'all'; // filter by subject
+
+  // Flashcard state
+  let fcAllCards = [];          // full deck for current session
+  let fcDeck = [];              // current working deck (may be subset)
+  let fcIndex = 0;              // current card index
+  let fcIsFlipped = false;      // is card currently flipped?
+  let fcKnowIds = new Set();    // indices (of fcAllCards) marked as "know"
+  let fcDontknowIds = new Set(); // indices (of fcAllCards) marked as "don't know"
+  let fcCurrentExamId = null;   // which exam we're doing flashcards for
 
   /* ================================================
      I18N FUNCTIONS
@@ -346,6 +399,8 @@ window.Dexams = window.Dexams || {};
       case 'results': break; // rendered on submit
       case 'review': break; // rendered on demand
       case 'history': renderHistory(); break;
+      case 'flashcard': break; // managed by flashcard engine
+      case 'flashcard-result': break; // rendered by flashcard engine
     }
   }
 
@@ -608,6 +663,7 @@ window.Dexams = window.Dexams || {};
           </div>
           <div class="exam-card-actions">
             <button class="btn btn-primary btn-sm" onclick="Dexams.App.startConfig('${exam.id}')">${t('btn_practice')}</button>
+            <button class="btn btn-flashcard btn-sm" onclick="Dexams.App.startFlashcards('${exam.id}')">${t('btn_flashcard')}</button>
             <button class="btn btn-secondary btn-sm" onclick="Dexams.App.editExam('${exam.id}')">${t('btn_edit')}</button>
             <button class="btn btn-danger btn-sm" onclick="Dexams.App.deleteExam('${exam.id}', '${escapeHtml(exam.title).replace(/'/g, "\\'")}')">${t('btn_delete')}</button>
           </div>
@@ -1461,6 +1517,306 @@ window.Dexams = window.Dexams || {};
   }
 
   /* ================================================
+     FLASHCARD MODE
+     ================================================ */
+
+  /**
+   * Build the answer display text for a question.
+   * Works for single, multiple, truefalse types.
+   */
+  function fcGetAnswerText(q) {
+    if (q.type === 'truefalse') {
+      return q.correctAnswer === true || q.correctAnswer === 0
+        ? (currentLang === 'vi' ? '\u2713 \u0110\u00FAng (True)' : '\u2713 True')
+        : (currentLang === 'vi' ? '\u2717 Sai (False)' : '\u2717 False');
+    }
+
+    function formatOption(opt, idx) {
+      const letter = String.fromCharCode(65 + idx);
+      // Remove any existing prefix like "A. " from the option text
+      const cleanText = opt.replace(/^[A-Z]\.\s*/i, '');
+      return `${letter}. ${escapeHtml(cleanText)}`;
+    }
+
+    if (q.type === 'multiple') {
+      const correctIdxs = q.correctAnswers || [];
+      return correctIdxs.map(i => formatOption(q.options[i], i)).join('<br><br>');
+    }
+    // single
+    const idx = q.correctAnswer;
+    return formatOption(q.options[idx], idx);
+  }
+
+  /**
+   * Kick off a flashcard session for a given exam.
+   * @param {string} examId
+   * @param {number[]|null} subsetIndices - if set, only use these indices from the exam
+   */
+  async function startFlashcards(examId, subsetIndices) {
+    const exam = await ExamStorage.getById(examId);
+    if (!exam) return;
+
+    if (exam.passcode) {
+      const userCode = prompt(currentLang === 'vi'
+        ? 'Nh\u1EADp passcode cho b\u00E0i thi n\u00E0y:'
+        : 'Enter passcode for this exam:');
+      if (userCode !== exam.passcode) {
+        showToast(currentLang === 'vi' ? 'Sai passcode!' : 'Incorrect passcode!', 'error');
+        return;
+      }
+    }
+
+    fcCurrentExamId = examId;
+    fcAllCards = exam.questions.slice(); // copy
+
+    if (subsetIndices) {
+      fcDeck = subsetIndices.map(i => fcAllCards[i]);
+    } else {
+      // Shuffle the deck
+      fcDeck = fcAllCards.slice();
+      for (let i = fcDeck.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [fcDeck[i], fcDeck[j]] = [fcDeck[j], fcDeck[i]];
+      }
+    }
+
+    fcIndex = 0;
+    fcIsFlipped = false;
+    fcKnowIds = new Set();
+    fcDontknowIds = new Set();
+
+    navigateTo('flashcard');
+    fcRenderCard();
+    fcUpdateDotNav();
+  }
+
+  /** Render the current flashcard (question side). */
+  function fcRenderCard() {
+    if (!fcDeck || fcDeck.length === 0) return;
+
+    const card = document.getElementById('fcCard');
+    const q = fcDeck[fcIndex];
+    const total = fcDeck.length;
+
+    // Reset to front side
+    fcIsFlipped = false;
+    card.classList.remove('flipped', 'slide-in', 'slide-out');
+
+    // Animate in
+    void card.offsetWidth; // reflow
+    card.classList.add('slide-in');
+
+    // Content
+    document.getElementById('fcQuestionText').textContent = q.text;
+    document.getElementById('fcAnswerContent').innerHTML = fcGetAnswerText(q);
+    document.getElementById('fcExplanation').textContent = q.explanation || '';
+
+    // Progress
+    document.getElementById('fcProgressText').textContent = `${fcIndex + 1} / ${total}`;
+    const pct = ((fcIndex) / total) * 100;
+    document.getElementById('fcProgressFill').style.width = pct + '%';
+
+    // Counters
+    document.getElementById('fcKnowCount').textContent = '\u2705 ' + fcKnowIds.size;
+    document.getElementById('fcDontknowCount').textContent = '\u274C ' + fcDontknowIds.size;
+
+    // Show flip button, hide judge buttons
+    document.getElementById('fcFlipArea').classList.remove('hidden');
+    document.getElementById('fcJudgeArea').classList.add('hidden');
+
+    // Dot nav update
+    fcUpdateDotNav();
+  }
+
+  /** Flip the current card to show the answer. */
+  function fcFlipCard() {
+    if (fcIsFlipped) return;
+    fcIsFlipped = true;
+    const card = document.getElementById('fcCard');
+    card.classList.add('flipped');
+
+    // Show judge buttons
+    document.getElementById('fcFlipArea').classList.add('hidden');
+    document.getElementById('fcJudgeArea').classList.remove('hidden');
+  }
+
+  /** Flip the card back to the question. */
+  function fcFlipCardBack() {
+    if (!fcIsFlipped) return;
+    fcIsFlipped = false;
+    const card = document.getElementById('fcCard');
+    card.classList.remove('flipped');
+
+    // Show flip button, hide judge buttons
+    document.getElementById('fcFlipArea').classList.remove('hidden');
+    document.getElementById('fcJudgeArea').classList.add('hidden');
+  }
+
+  /** Mark the current card and advance. */
+  function fcMarkCard(know) {
+    const total = fcDeck.length;
+    // We track by original index in fcAllCards
+    const origIdx = fcAllCards.indexOf(fcDeck[fcIndex]);
+    if (know) {
+      fcKnowIds.add(origIdx);
+      fcDontknowIds.delete(origIdx);
+    } else {
+      fcDontknowIds.add(origIdx);
+      fcKnowIds.delete(origIdx);
+    }
+
+    // Update dot for this card
+    fcUpdateDotNav();
+
+    // Advance or finish
+    if (fcIndex < total - 1) {
+      const card = document.getElementById('fcCard');
+      card.classList.add('slide-out');
+      setTimeout(() => {
+        fcIndex++;
+        fcRenderCard();
+      }, 260);
+    } else {
+      // Session complete — update progress fill to 100% then show results
+      document.getElementById('fcProgressFill').style.width = '100%';
+      document.getElementById('fcKnowCount').textContent = '\u2705 ' + fcKnowIds.size;
+      document.getElementById('fcDontknowCount').textContent = '\u274C ' + fcDontknowIds.size;
+      setTimeout(() => fcShowResult(), 400);
+    }
+  }
+
+  /** Build and show the result page. */
+  function fcShowResult() {
+    const total = fcDeck.length;
+    const knowCount = fcKnowIds.size;
+    const dontknowCount = fcDontknowIds.size;
+    const pct = total > 0 ? Math.round((knowCount / total) * 100) : 0;
+
+    document.getElementById('fcResultKnow').textContent = knowCount;
+    document.getElementById('fcResultTotal').textContent = total;
+    document.getElementById('fcResultDontknow').textContent = dontknowCount;
+    document.getElementById('fcResultPct').textContent = pct + '%';
+
+    // SVG ring animation
+    const circumference = 314; // 2 * pi * 50
+    const offset = circumference - (pct / 100) * circumference;
+    const ring = document.getElementById('fcRingFill');
+    // Set gradient stroke color directly (can't use CSS url() easily across pages)
+    ring.setAttribute('stroke', pct >= 80 ? '#10B981' : pct >= 50 ? '#8B5CF6' : '#F43F5E');
+    setTimeout(() => { ring.style.strokeDashoffset = offset; }, 100);
+
+    // Emoji & message
+    let emoji, msgKey;
+    if (pct === 100) { emoji = '\uD83C\uDF89'; msgKey = 'fc_msg_perfect'; }
+    else if (pct >= 80) { emoji = '\uD83D\uDE04'; msgKey = 'fc_msg_great'; }
+    else if (pct >= 50) { emoji = '\uD83D\uDCAA'; msgKey = 'fc_msg_good'; }
+    else { emoji = '\uD83D\uDCDA'; msgKey = 'fc_msg_keep_going'; }
+
+    document.getElementById('fcResultEmoji').textContent = emoji;
+    document.getElementById('fcResultMessage').textContent = t(msgKey);
+
+    // Show / hide "review missed" button
+    const reviewBtn = document.getElementById('fcReviewMissedBtn');
+    if (dontknowCount > 0) {
+      reviewBtn.classList.remove('hidden');
+    } else {
+      reviewBtn.classList.add('hidden');
+    }
+
+    navigateTo('flashcard-result');
+  }
+
+  /** Update the dot navigation row. */
+  function fcUpdateDotNav() {
+    const container = document.getElementById('fcDotNav');
+    if (!container) return;
+    const total = fcDeck.length;
+    // Only render dots if reasonable count
+    if (total > 60) { container.innerHTML = ''; return; }
+
+    let html = '';
+    for (let i = 0; i < total; i++) {
+      const origIdx = fcAllCards.indexOf(fcDeck[i]);
+      let cls = 'fc-dot';
+      if (i === fcIndex) cls += ' fc-dot-current';
+      else if (fcKnowIds.has(origIdx)) cls += ' fc-dot-know';
+      else if (fcDontknowIds.has(origIdx)) cls += ' fc-dot-dontknow';
+      html += `<div class="${cls}"></div>`;
+    }
+    container.innerHTML = html;
+  }
+
+  /** Set up all flashcard event listeners (called once on init). */
+  function setupFlashcard() {
+    // Flip by clicking the card itself
+    document.getElementById('fcCard').addEventListener('click', () => {
+      if (currentPage === 'flashcard') {
+        if (!fcIsFlipped) {
+          fcFlipCard();
+        } else {
+          fcFlipCardBack();
+        }
+      }
+    });
+
+    // Flip button
+    document.getElementById('fcFlipBtn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      fcFlipCard();
+    });
+
+    // Flip back button
+    document.getElementById('fcFlipBackBtn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      fcFlipCardBack();
+    });
+
+    // Know / Don't know
+    document.getElementById('fcKnowBtn').addEventListener('click', () => fcMarkCard(true));
+    document.getElementById('fcDontknowBtn').addEventListener('click', () => fcMarkCard(false));
+
+    // Exit
+    document.getElementById('fcExitBtn').addEventListener('click', () => navigateTo('exams'));
+
+    // Restart (replay full deck)
+    document.getElementById('fcRestartBtn').addEventListener('click', () => {
+      if (fcCurrentExamId) startFlashcards(fcCurrentExamId);
+    });
+
+    // Review missed
+    document.getElementById('fcReviewMissedBtn').addEventListener('click', () => {
+      if (!fcCurrentExamId || fcDontknowIds.size === 0) return;
+      // Build subset of missed original indices
+      const missedOrigIndices = [...fcDontknowIds];
+      // Find them in the deck order
+      const missedCards = missedOrigIndices.map(i => fcAllCards[i]).filter(Boolean);
+      if (missedCards.length === 0) return;
+      // Re-init session with missed cards only
+      fcIndex = 0;
+      fcIsFlipped = false;
+      fcKnowIds = new Set();
+      fcDontknowIds = new Set();
+      fcDeck = missedCards;
+      navigateTo('flashcard');
+      fcRenderCard();
+      fcUpdateDotNav();
+    });
+
+    // Keyboard shortcuts for flashcard page
+    document.addEventListener('keydown', (e) => {
+      if (currentPage !== 'flashcard') return;
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        if (!fcIsFlipped) fcFlipCard();
+      } else if (e.key === 'ArrowRight' || e.key === '1') {
+        if (fcIsFlipped) { e.preventDefault(); fcMarkCard(true); }
+      } else if (e.key === 'ArrowLeft' || e.key === '2') {
+        if (fcIsFlipped) { e.preventDefault(); fcMarkCard(false); }
+      }
+    });
+  }
+
+  /* ================================================
      MODAL
      ================================================ */
   function showModal(title, body, buttons, useHtmlBody) {
@@ -1560,6 +1916,7 @@ window.Dexams = window.Dexams || {};
     setupExam();
     setupResults();
     setupHistory();
+    setupFlashcard();
 
     // Language toggle
     document.getElementById('langToggle').addEventListener('click', toggleLanguage);
@@ -1652,6 +2009,7 @@ window.Dexams = window.Dexams || {};
   window.Dexams.App = {
     navigateTo,
     startConfig,
+    startFlashcards,
     editExam,
     deleteExam,
     showToast,

@@ -423,6 +423,119 @@ Hết đoạn văn (optional)</pre>
         </div>
       </section>
 
+      <!-- ── FLASHCARD PAGE ── -->
+      <section class="page" id="page-flashcard">
+        <!-- Top bar -->
+        <div class="fc-topbar">
+          <button class="btn btn-ghost btn-sm" id="fcExitBtn" data-i18n="fc_exit">✕ Thoát</button>
+          <div class="fc-progress-info">
+            <span id="fcProgressText" class="fc-progress-label">0 / 0</span>
+          </div>
+          <div class="fc-counters">
+            <span class="fc-counter fc-counter-know" id="fcKnowCount">✅ 0</span>
+            <span class="fc-counter fc-counter-dontknow" id="fcDontknowCount">❌ 0</span>
+          </div>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="fc-progress-track">
+          <div class="fc-progress-fill" id="fcProgressFill" style="width: 0%"></div>
+        </div>
+
+        <!-- Card scene -->
+        <div class="fc-scene-wrapper">
+          <div class="fc-scene" id="fcScene">
+            <div class="fc-card" id="fcCard">
+              <!-- Front -->
+              <div class="fc-face fc-front">
+                <div class="fc-face-label" data-i18n="fc_question_label">Câu hỏi</div>
+                <div class="fc-question-text" id="fcQuestionText"></div>
+                <div class="fc-flip-hint" data-i18n="fc_flip_hint">👆 Nhấn để lật thẻ</div>
+              </div>
+              <!-- Back -->
+              <div class="fc-face fc-back">
+                <div class="fc-face-label" data-i18n="fc_answer_label">Đáp án</div>
+                <div class="fc-answer-content" id="fcAnswerContent"></div>
+                <div class="fc-explanation" id="fcExplanation"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action buttons -->
+        <div class="fc-actions" id="fcActions">
+          <div class="fc-flip-area" id="fcFlipArea">
+            <button class="btn-fc-flip" id="fcFlipBtn" data-i18n="fc_flip_btn">🔄 Lật thẻ</button>
+          </div>
+          <div class="fc-judge-area hidden" id="fcJudgeArea">
+            <button class="btn-fc-dontknow" id="fcDontknowBtn">
+              <span class="fc-btn-icon">\u274C</span>
+              <span class="fc-btn-label" data-i18n="fc_dontknow">Ch\u01B0a bi\u1EBFt</span>
+            </button>
+            <button class="btn-fc-flip-back" id="fcFlipBackBtn" title="L\u1EADt l\u1EA1i">
+              <span class="fc-btn-icon" style="font-size: 1.5rem;">\uD83D\uDD04</span>
+              <span class="fc-btn-label" data-i18n="fc_flip_back">L\u1EADt l\u1EA1i</span>
+            </button>
+            <button class="btn-fc-know" id="fcKnowBtn">
+              <span class="fc-btn-icon">\u2705</span>
+              <span class="fc-btn-label" data-i18n="fc_know">Bi\u1EBFt r\u1ED3i!</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Card index dot nav -->
+        <div class="fc-dot-nav" id="fcDotNav"></div>
+      </section>
+
+      <!-- ── FLASHCARD RESULT PAGE ── -->
+      <section class="page" id="page-flashcard-result">
+        <div class="fc-result-wrapper">
+          <div class="fc-result-card">
+            <div class="fc-result-emoji" id="fcResultEmoji">🎉</div>
+            <h2 class="fc-result-title" data-i18n="fc_result_title">Kết quả học thẻ</h2>
+
+            <!-- Donut stats -->
+            <div class="fc-result-stats">
+              <div class="fc-result-stat fc-stat-know">
+                <div class="fc-stat-value" id="fcResultKnow">0</div>
+                <div class="fc-stat-label" data-i18n="fc_result_know">Biết rồi ✅</div>
+              </div>
+              <div class="fc-result-stat fc-stat-total">
+                <div class="fc-stat-value" id="fcResultTotal">0</div>
+                <div class="fc-stat-label" data-i18n="fc_result_total">Tổng thẻ</div>
+              </div>
+              <div class="fc-result-stat fc-stat-dontknow">
+                <div class="fc-stat-value" id="fcResultDontknow">0</div>
+                <div class="fc-stat-label" data-i18n="fc_result_dontknow">Chưa biết ❌</div>
+              </div>
+            </div>
+
+            <!-- Progress ring -->
+            <div class="fc-result-ring-container">
+              <svg class="fc-result-ring" viewBox="0 0 120 120">
+                <circle class="fc-ring-track" cx="60" cy="60" r="50"/>
+                <circle class="fc-ring-fill" id="fcRingFill" cx="60" cy="60" r="50"
+                  stroke-dasharray="314" stroke-dashoffset="314"/>
+              </svg>
+              <div class="fc-ring-center">
+                <div class="fc-ring-pct" id="fcResultPct">0%</div>
+                <div class="fc-ring-lbl" data-i18n="fc_result_known">đã thuộc</div>
+              </div>
+            </div>
+
+            <!-- Grade message -->
+            <div class="fc-result-message" id="fcResultMessage"></div>
+
+            <!-- Actions -->
+            <div class="fc-result-actions">
+              <button class="btn btn-accent" id="fcReviewMissedBtn" data-i18n="fc_review_missed">🔁 Ôn lại chưa thuộc</button>
+              <button class="btn btn-primary" id="fcRestartBtn" data-i18n="fc_restart">↺ Học lại từ đầu</button>
+              <button class="btn btn-ghost" data-navigate="exams" data-i18n="fc_back_exams">📚 Về danh sách đề</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
     </div>
   </main>
 
