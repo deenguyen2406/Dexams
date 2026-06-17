@@ -21,6 +21,7 @@
         <a class="nav-link active" data-page="home" data-i18n="nav_home">Home</a>
         <a class="nav-link" data-page="import" data-i18n="nav_import">Import</a>
         <a class="nav-link" data-page="exams" data-i18n="nav_exams">Exams</a>
+        <a class="nav-link" data-page="vocab" data-i18n="nav_vocab">Học tập</a>
         <a class="nav-link" data-page="history" data-i18n="nav_history">History</a>
       </nav>
       <div class="header-actions">
@@ -531,6 +532,124 @@ Hết đoạn văn (optional)</pre>
               <button class="btn btn-accent" id="fcReviewMissedBtn" data-i18n="fc_review_missed">🔁 Ôn lại chưa thuộc</button>
               <button class="btn btn-primary" id="fcRestartBtn" data-i18n="fc_restart">↺ Học lại từ đầu</button>
               <button class="btn btn-ghost" data-navigate="exams" data-i18n="fc_back_exams">📚 Về danh sách đề</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── VOCABULARY LIST PAGE ── -->
+      <section class="page" id="page-vocab">
+        <h2 class="section-title" data-i18n="vocab_title">📖 Bộ từ vựng</h2>
+        <p class="section-desc" data-i18n="vocab_desc">Học từ vựng qua hình ảnh và phát âm. Nhập file JSON để bắt đầu.</p>
+
+        <div class="vocab-import-area">
+          <button class="btn btn-primary" data-navigate="import" data-i18n="vocab_import_btn">📥 Nhập bộ từ mới</button>
+        </div>
+
+        <div class="vocab-grid" id="vocabGrid"></div>
+        <div class="empty-state hidden" id="vocabEmpty">
+          <span class="empty-icon">📖</span>
+          <p data-i18n="vocab_empty">Chưa có bộ từ vựng nào. Hãy nhập file JSON để bắt đầu học!</p>
+        </div>
+      </section>
+
+      <!-- ── VOCABULARY LEARN PAGE ── -->
+      <section class="page" id="page-vocab-learn">
+        <!-- Top bar -->
+        <div class="fc-topbar">
+          <button class="btn btn-ghost btn-sm" id="vocabExitBtn" data-i18n="fc_exit">✕ Thoát</button>
+          <div class="fc-progress-info">
+            <span class="fc-progress-label" id="vocabProgressText">1 / 20</span>
+          </div>
+          <div class="fc-counters">
+            <span class="fc-counter fc-counter-know" id="vocabKnowCount">✅ 0</span>
+            <span class="fc-counter fc-counter-dontknow" id="vocabDontknowCount">❌ 0</span>
+          </div>
+        </div>
+
+        <!-- Progress bar -->
+        <div class="fc-progress-track">
+          <div class="fc-progress-fill" id="vocabProgressFill" style="width: 0%;"></div>
+        </div>
+
+        <!-- Vocab card -->
+        <div class="vocab-card-wrapper">
+          <div class="vocab-learn-card" id="vocabLearnCard">
+            <div class="vocab-card-img-container" id="vocabImgContainer">
+              <img class="vocab-card-img" id="vocabCardImg" style="display:none;" alt="" />
+              <div class="vocab-card-img-placeholder" id="vocabImgPlaceholder" style="display:flex;">🖼️</div>
+              <button class="vocab-speaker-btn" id="vocabSpeakerBtn" title="Phát âm">
+                🔊
+              </button>
+            </div>
+            <div class="vocab-card-body">
+              <div class="vocab-card-word" id="vocabCardWord"></div>
+              <div class="vocab-card-phonetic" id="vocabCardPhonetic"></div>
+              <div class="vocab-card-meaning" id="vocabCardMeaning"></div>
+              <div class="vocab-card-example" id="vocabCardExample"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="fc-actions">
+          <div class="fc-judge-area" id="vocabJudgeArea">
+            <button class="btn-fc-dontknow" id="vocabDontknowBtn">
+              <span class="fc-btn-icon">❌</span>
+              <span class="fc-btn-label" data-i18n="fc_dontknow">Chưa nhớ</span>
+            </button>
+            <button class="btn-fc-know" id="vocabKnowBtn">
+              <span class="fc-btn-icon">✅</span>
+              <span class="fc-btn-label" data-i18n="fc_know">Nhớ rồi!</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Dot nav -->
+        <div class="fc-dot-nav" id="vocabDotNav"></div>
+      </section>
+
+      <!-- ── VOCABULARY RESULT PAGE ── -->
+      <section class="page" id="page-vocab-result">
+        <div class="fc-result-wrapper">
+          <div class="fc-result-card">
+            <span class="fc-result-emoji" id="vocabResultEmoji">🎉</span>
+            <h2 class="fc-result-title" data-i18n="vocab_result_title">Kết quả học từ vựng</h2>
+
+            <!-- SVG ring -->
+            <div class="fc-result-ring-container">
+              <svg class="fc-result-ring" viewBox="0 0 120 120">
+                <circle class="fc-ring-track" cx="60" cy="60" r="50"></circle>
+                <circle class="fc-ring-fill" id="vocabRingFill" cx="60" cy="60" r="50"
+                  stroke-dasharray="314" stroke-dashoffset="314"></circle>
+              </svg>
+              <div class="fc-ring-center">
+                <span class="fc-ring-pct" id="vocabResultPct">0%</span>
+                <span class="fc-ring-lbl" data-i18n="fc_result_known">đã thuộc</span>
+              </div>
+            </div>
+
+            <div class="fc-result-stats">
+              <div class="fc-result-stat fc-stat-know">
+                <div class="fc-stat-value" id="vocabResultKnow">0</div>
+                <div class="fc-stat-label" data-i18n="vocab_result_know">Nhớ rồi ✅</div>
+              </div>
+              <div class="fc-result-stat fc-stat-total">
+                <div class="fc-stat-value" id="vocabResultTotal">0</div>
+                <div class="fc-stat-label" data-i18n="vocab_result_total">Tổng từ</div>
+              </div>
+              <div class="fc-result-stat fc-stat-dontknow">
+                <div class="fc-stat-value" id="vocabResultDontknow">0</div>
+                <div class="fc-stat-label" data-i18n="vocab_result_dontknow">Chưa nhớ ❌</div>
+              </div>
+            </div>
+
+            <p class="fc-result-message" id="vocabResultMessage"></p>
+
+            <div class="fc-result-actions">
+              <button class="btn btn-accent" id="vocabReviewMissedBtn" data-i18n="fc_review_missed">🔁 Ôn lại chưa thuộc</button>
+              <button class="btn btn-primary" id="vocabRestartBtn" data-i18n="fc_restart">↺ Học lại từ đầu</button>
+              <button class="btn btn-ghost" data-navigate="vocab" data-i18n="vocab_back_list">📖 Về danh sách từ vựng</button>
             </div>
           </div>
         </div>

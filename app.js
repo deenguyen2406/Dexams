@@ -13,6 +13,7 @@ window.Dexams = window.Dexams || {};
     HistoryStorage,
     SettingsStorage,
     ProgressStorage,
+    VocabStorage,
     ExamEngine,
     Importer,
     Scorer,
@@ -27,6 +28,7 @@ window.Dexams = window.Dexams || {};
       nav_home: 'Home',
       nav_import: 'Import',
       nav_exams: 'Exams',
+      nav_vocab: 'Study',
       nav_history: 'History',
       hero_subtitle: 'Practice exams, ace your tests. Import question sets, set your own timer, and track your progress.',
       stat_exams: 'Exams Imported',
@@ -164,12 +166,26 @@ window.Dexams = window.Dexams || {};
       fc_msg_perfect: '\uD83C\uDF89 Perfect! You know all the cards!',
       fc_msg_great: '\uD83D\uDE04 Great job! Almost there!',
       fc_msg_good: '\uD83D\uDCAA Keep it up! Practice makes perfect.',
-      fc_msg_keep_going: '\uD83D\uDCDA Keep studying! You can do it!'
+      fc_msg_keep_going: '📚 Keep studying! You can do it!',
+      // Vocabulary Mode
+      vocab_title: '📖 Vocabulary Sets',
+      vocab_desc: 'Learn vocabulary with images and pronunciation. Import a JSON file to start.',
+      vocab_import_btn: '📥 Import New Set',
+      vocab_empty: 'No vocabulary sets yet. Import a JSON file to start learning!',
+      vocab_learn_btn: '🎧 Learn',
+      vocab_words_count: 'words',
+      vocab_result_title: 'Vocabulary Results',
+      vocab_result_know: 'Remembered ✅',
+      vocab_result_total: 'Total Words',
+      vocab_result_dontknow: "Don't Remember ❌",
+      vocab_back_list: '📖 Back to Vocab Sets',
+      toast_vocab_imported: 'Vocabulary set imported successfully!'
     },
     vi: {
       nav_home: 'Trang chủ',
       nav_import: 'Nhập đề',
       nav_exams: 'Đề thi',
+      nav_vocab: 'Học tập',
       nav_history: 'Lịch sử',
       hero_subtitle: 'Luyện đề thi, chinh phục kỳ thi. Nhập bộ đề, tùy chỉnh thời gian, theo dõi tiến trình học tập.',
       stat_exams: 'Đề đã nhập',
@@ -307,7 +323,20 @@ window.Dexams = window.Dexams || {};
       fc_msg_perfect: '\uD83C\uDF89 Xu\u1EA5t s\u1EAFc! B\u1EA1n \u0111\u00E3 thu\u1ED9c h\u1EBFt!',
       fc_msg_great: '\uD83D\uDE04 Tuy\u1EC7t v\u1EDD i! G\u1EA7n thu\u1ED9c h\u1EBFt r\u1ED3i!',
       fc_msg_good: '\uD83D\uDCAA C\u1ED1 l\u00EAn! Luy\u1EC7n t\u1EADp nhi\u1EC1u th\u00EAm nh\u00E9.',
-      fc_msg_keep_going: '\uD83D\uDCDA Ti\u1EBFp t\u1EE5c h\u1ECDc! B\u1EA1n l\u00E0m \u0111\u01B0\u1EE3c!'
+      fc_msg_keep_going: '\uD83D\uDCDA Ti\u1EBFp t\u1EE5c h\u1ECDc! B\u1EA1n l\u00E0m \u0111\u01B0\u1EE3c!',
+      // Vocabulary Mode
+      vocab_title: '📖 Bộ từ vựng',
+      vocab_desc: 'Học từ vựng qua hình ảnh và phát âm. Nhập file JSON để bắt đầu.',
+      vocab_import_btn: '📥 Nhập bộ từ mới',
+      vocab_empty: 'Chưa có bộ từ vựng nào. Hãy nhập file JSON để bắt đầu học!',
+      vocab_learn_btn: '🎧 Học',
+      vocab_words_count: 'từ',
+      vocab_result_title: 'Kết quả học từ vựng',
+      vocab_result_know: 'Nhớ rồi ✅',
+      vocab_result_total: 'Tổng từ',
+      vocab_result_dontknow: 'Chưa nhớ ❌',
+      vocab_back_list: '📖 Về danh sách từ vựng',
+      toast_vocab_imported: 'Nhập bộ từ vựng thành công!'
     }
   };
 
@@ -334,6 +363,16 @@ window.Dexams = window.Dexams || {};
   let fcKnowIds = new Set();    // indices (of fcAllCards) marked as "know"
   let fcDontknowIds = new Set(); // indices (of fcAllCards) marked as "don't know"
   let fcCurrentExamId = null;   // which exam we're doing flashcards for
+
+  // Vocabulary state
+  let vocabAllWords = [];        // full word list for current session
+  let vocabDeck = [];            // current working deck
+  let vocabIndex = 0;            // current word index
+  let vocabKnowIds = new Set();  // indices marked as "know"
+  let vocabDontknowIds = new Set(); // indices marked as "don't know"
+  let vocabCurrentSetId = null;  // which vocab set we're studying
+  let vocabCurrentLang = 'en';   // language for speech
+  let pendingVocab = null;       // parsed vocab set awaiting import
 
   /* ================================================
      I18N FUNCTIONS
@@ -401,6 +440,9 @@ window.Dexams = window.Dexams || {};
       case 'history': renderHistory(); break;
       case 'flashcard': break; // managed by flashcard engine
       case 'flashcard-result': break; // rendered by flashcard engine
+      case 'vocab': renderVocabList(); break;
+      case 'vocab-learn': break; // managed by vocab engine
+      case 'vocab-result': break; // rendered by vocab engine
     }
   }
 
@@ -461,6 +503,17 @@ window.Dexams = window.Dexams || {};
       const content = e.target.result;
       const result = Importer.parseFile(content, file.name);
 
+      // Check if this is a vocabulary file
+      if (result.vocabSet) {
+        if (result.errors.length > 0) {
+          showToast(t('toast_import_error') + result.errors.join('; '), 'warning');
+        }
+        pendingVocab = result.vocabSet;
+        // Auto-save vocab set (simpler flow than exams)
+        confirmVocabImport(file.name);
+        return;
+      }
+
       if (result.errors.length > 0 && !result.exam) {
         showToast(t('toast_import_error') + result.errors[0], 'error');
         return;
@@ -474,6 +527,18 @@ window.Dexams = window.Dexams || {};
       showImportPreview(result.exam);
     };
     reader.readAsText(file);
+  }
+
+  async function confirmVocabImport(filename) {
+    if (!pendingVocab) return;
+    if (!pendingVocab.title) {
+      pendingVocab.title = filename.replace(/\.[^.]+$/, '') || 'Untitled Vocab';
+    }
+    pendingVocab.id = generateId();
+    await VocabStorage.save(pendingVocab);
+    showToast(t('toast_vocab_imported'), 'success');
+    pendingVocab = null;
+    navigateTo('vocab');
   }
 
   function showImportPreview(exam) {
@@ -1817,6 +1882,300 @@ window.Dexams = window.Dexams || {};
   }
 
   /* ================================================
+     VOCABULARY MODE
+     ================================================ */
+
+  /** Speak a word using Web Speech API. */
+  function vocabSpeak(text, lang) {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = lang || vocabCurrentLang || 'en-US';
+    utter.rate = 0.85;
+    utter.pitch = 1;
+
+    // Visual feedback
+    const btn = document.getElementById('vocabSpeakerBtn');
+    if (btn) {
+      btn.classList.add('speaking');
+      utter.onend = () => btn.classList.remove('speaking');
+      utter.onerror = () => btn.classList.remove('speaking');
+    }
+
+    window.speechSynthesis.speak(utter);
+  }
+
+  /** Render the vocab set list page. */
+  async function renderVocabList() {
+    const grid = document.getElementById('vocabGrid');
+    const empty = document.getElementById('vocabEmpty');
+    const allSets = await VocabStorage.getAll();
+
+    if (allSets.length === 0) {
+      grid.classList.add('hidden');
+      empty.classList.remove('hidden');
+      return;
+    }
+
+    empty.classList.add('hidden');
+    grid.classList.remove('hidden');
+
+    let html = '';
+    for (const vs of allSets) {
+      html += `
+        <div class="vocab-set-card">
+          <div class="vocab-set-title">${escapeHtml(vs.title)}</div>
+          <div class="vocab-set-meta">
+            <span>📝 ${vs.totalWords || (vs.words ? vs.words.length : 0)} ${t('vocab_words_count')}</span>
+            <span>🌐 ${(vs.lang || 'en').toUpperCase()}</span>
+          </div>
+          <div class="vocab-set-actions">
+            <button class="btn btn-vocab-learn btn-sm" onclick="Dexams.App.startVocabLearn('${vs.id}')">${t('vocab_learn_btn')}</button>
+            <button class="btn btn-danger btn-sm" onclick="Dexams.App.deleteVocabSet('${vs.id}', '${escapeHtml(vs.title).replace(/'/g, "\\\'")}')">${t('btn_delete')}</button>
+          </div>
+        </div>
+      `;
+    }
+    grid.innerHTML = html;
+  }
+
+  /** Delete a vocabulary set with confirmation. */
+  async function deleteVocabSet(id, title) {
+    const confirmMsg = currentLang === 'vi'
+      ? `Bạn có chắc muốn xóa bộ từ "${title}"?`
+      : `Are you sure you want to delete "${title}"?`;
+    if (!confirm(confirmMsg)) return;
+    await VocabStorage.delete(id);
+    showToast(currentLang === 'vi' ? 'Đã xóa bộ từ vựng!' : 'Vocabulary set deleted!', 'success');
+    renderVocabList();
+  }
+
+  /** Start a vocab learning session. */
+  async function startVocabLearn(vocabId) {
+    const vocabSet = await VocabStorage.getById(vocabId);
+    if (!vocabSet) return;
+
+    vocabCurrentSetId = vocabId;
+    vocabCurrentLang = vocabSet.lang || 'en';
+    vocabAllWords = vocabSet.words.slice();
+
+    // Shuffle
+    vocabDeck = vocabAllWords.slice();
+    for (let i = vocabDeck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [vocabDeck[i], vocabDeck[j]] = [vocabDeck[j], vocabDeck[i]];
+    }
+
+    vocabIndex = 0;
+    vocabKnowIds = new Set();
+    vocabDontknowIds = new Set();
+
+    navigateTo('vocab-learn');
+    vocabRenderCard();
+    vocabUpdateDotNav();
+  }
+
+  /** Render the current vocab card. */
+  function vocabRenderCard() {
+    if (!vocabDeck || vocabDeck.length === 0) return;
+
+    const w = vocabDeck[vocabIndex];
+    const total = vocabDeck.length;
+    const card = document.getElementById('vocabLearnCard');
+
+    // Animate
+    card.style.animation = 'none';
+    void card.offsetWidth;
+    card.style.animation = 'fcSlideIn 0.35s ease-out';
+
+    // Image — always clear old handlers first to avoid stale callbacks
+    const img = document.getElementById('vocabCardImg');
+    const placeholder = document.getElementById('vocabImgPlaceholder');
+
+    img.onload = null;
+    img.onerror = null;
+    img.style.display = 'none';
+    placeholder.style.display = 'flex';
+
+    if (w.image) {
+      // Có URL ảnh → thử load, nếu thành công thì hiện ảnh
+      img.onload = () => {
+        img.style.display = 'block';
+        placeholder.style.display = 'none';
+      };
+      img.onerror = () => {
+        img.style.display = 'none';
+        placeholder.style.display = 'flex';
+      };
+      img.alt = w.word;
+      img.src = w.image;
+    } else {
+      // Không có URL → giữ placeholder, không load gì cả
+      img.src = '';
+      img.alt = '';
+    }
+
+    // Text
+    document.getElementById('vocabCardWord').textContent = w.word;
+    document.getElementById('vocabCardMeaning').textContent = w.meaning;
+    document.getElementById('vocabCardExample').textContent = w.example || '';
+
+    // Progress
+    document.getElementById('vocabProgressText').textContent = `${vocabIndex + 1} / ${total}`;
+    const pct = (vocabIndex / total) * 100;
+    document.getElementById('vocabProgressFill').style.width = pct + '%';
+
+    // Counters
+    document.getElementById('vocabKnowCount').textContent = '✅ ' + vocabKnowIds.size;
+    document.getElementById('vocabDontknowCount').textContent = '❌ ' + vocabDontknowIds.size;
+
+    // Auto-speak the word
+    setTimeout(() => vocabSpeak(w.word, vocabCurrentLang), 300);
+  }
+
+  /** Mark current vocab card and advance. */
+  function vocabMarkCard(know) {
+    const total = vocabDeck.length;
+    const origIdx = vocabAllWords.indexOf(vocabDeck[vocabIndex]);
+
+    if (know) {
+      vocabKnowIds.add(origIdx);
+      vocabDontknowIds.delete(origIdx);
+    } else {
+      vocabDontknowIds.add(origIdx);
+      vocabKnowIds.delete(origIdx);
+    }
+
+    vocabUpdateDotNav();
+
+    if (vocabIndex < total - 1) {
+      vocabIndex++;
+      vocabRenderCard();
+    } else {
+      document.getElementById('vocabProgressFill').style.width = '100%';
+      document.getElementById('vocabKnowCount').textContent = '✅ ' + vocabKnowIds.size;
+      document.getElementById('vocabDontknowCount').textContent = '❌ ' + vocabDontknowIds.size;
+      setTimeout(() => vocabShowResult(), 400);
+    }
+  }
+
+  /** Show vocab result page. */
+  function vocabShowResult() {
+    const total = vocabDeck.length;
+    const knowCount = vocabKnowIds.size;
+    const dontknowCount = vocabDontknowIds.size;
+    const pct = total > 0 ? Math.round((knowCount / total) * 100) : 0;
+
+    document.getElementById('vocabResultKnow').textContent = knowCount;
+    document.getElementById('vocabResultTotal').textContent = total;
+    document.getElementById('vocabResultDontknow').textContent = dontknowCount;
+    document.getElementById('vocabResultPct').textContent = pct + '%';
+
+    // Ring
+    const circumference = 314;
+    const offset = circumference - (pct / 100) * circumference;
+    const ring = document.getElementById('vocabRingFill');
+    ring.setAttribute('stroke', pct >= 80 ? '#10B981' : pct >= 50 ? '#8B5CF6' : '#F43F5E');
+    ring.style.strokeDashoffset = circumference; // reset
+    setTimeout(() => { ring.style.strokeDashoffset = offset; }, 100);
+
+    // Emoji & message
+    let emoji, msgKey;
+    if (pct === 100) { emoji = '🎉'; msgKey = 'fc_msg_perfect'; }
+    else if (pct >= 80) { emoji = '😄'; msgKey = 'fc_msg_great'; }
+    else if (pct >= 50) { emoji = '💪'; msgKey = 'fc_msg_good'; }
+    else { emoji = '📚'; msgKey = 'fc_msg_keep_going'; }
+
+    document.getElementById('vocabResultEmoji').textContent = emoji;
+    document.getElementById('vocabResultMessage').textContent = t(msgKey);
+
+    const reviewBtn = document.getElementById('vocabReviewMissedBtn');
+    if (dontknowCount > 0) reviewBtn.classList.remove('hidden');
+    else reviewBtn.classList.add('hidden');
+
+    navigateTo('vocab-result');
+  }
+
+  /** Update dot nav for vocab. */
+  function vocabUpdateDotNav() {
+    const container = document.getElementById('vocabDotNav');
+    if (!container) return;
+    const total = vocabDeck.length;
+    if (total > 60) { container.innerHTML = ''; return; }
+
+    let html = '';
+    for (let i = 0; i < total; i++) {
+      const origIdx = vocabAllWords.indexOf(vocabDeck[i]);
+      let cls = 'fc-dot';
+      if (i === vocabIndex) cls += ' fc-dot-current';
+      else if (vocabKnowIds.has(origIdx)) cls += ' fc-dot-know';
+      else if (vocabDontknowIds.has(origIdx)) cls += ' fc-dot-dontknow';
+      html += `<div class="${cls}"></div>`;
+    }
+    container.innerHTML = html;
+  }
+
+  /** Set up vocab event listeners. */
+  function setupVocab() {
+    // Click card to speak
+    document.getElementById('vocabLearnCard').addEventListener('click', () => {
+      if (currentPage === 'vocab-learn' && vocabDeck.length > 0) {
+        vocabSpeak(vocabDeck[vocabIndex].word, vocabCurrentLang);
+      }
+    });
+
+    // Speaker button
+    document.getElementById('vocabSpeakerBtn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (vocabDeck.length > 0) {
+        vocabSpeak(vocabDeck[vocabIndex].word, vocabCurrentLang);
+      }
+    });
+
+    // Know / Don't know
+    document.getElementById('vocabKnowBtn').addEventListener('click', () => vocabMarkCard(true));
+    document.getElementById('vocabDontknowBtn').addEventListener('click', () => vocabMarkCard(false));
+
+    // Exit
+    document.getElementById('vocabExitBtn').addEventListener('click', () => {
+      window.speechSynthesis && window.speechSynthesis.cancel();
+      navigateTo('vocab');
+    });
+
+    // Restart
+    document.getElementById('vocabRestartBtn').addEventListener('click', () => {
+      if (vocabCurrentSetId) startVocabLearn(vocabCurrentSetId);
+    });
+
+    // Review missed
+    document.getElementById('vocabReviewMissedBtn').addEventListener('click', () => {
+      if (!vocabCurrentSetId || vocabDontknowIds.size === 0) return;
+      const missedCards = [...vocabDontknowIds].map(i => vocabAllWords[i]).filter(Boolean);
+      if (missedCards.length === 0) return;
+      vocabIndex = 0;
+      vocabKnowIds = new Set();
+      vocabDontknowIds = new Set();
+      vocabDeck = missedCards;
+      navigateTo('vocab-learn');
+      vocabRenderCard();
+      vocabUpdateDotNav();
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (currentPage !== 'vocab-learn') return;
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        if (vocabDeck.length > 0) vocabSpeak(vocabDeck[vocabIndex].word, vocabCurrentLang);
+      } else if (e.key === 'ArrowRight' || e.key === '1') {
+        e.preventDefault(); vocabMarkCard(true);
+      } else if (e.key === 'ArrowLeft' || e.key === '2') {
+        e.preventDefault(); vocabMarkCard(false);
+      }
+    });
+  }
+
+  /* ================================================
      MODAL
      ================================================ */
   function showModal(title, body, buttons, useHtmlBody) {
@@ -1917,6 +2276,7 @@ window.Dexams = window.Dexams || {};
     setupResults();
     setupHistory();
     setupFlashcard();
+    setupVocab();
 
     // Language toggle
     document.getElementById('langToggle').addEventListener('click', toggleLanguage);
@@ -2010,6 +2370,8 @@ window.Dexams = window.Dexams || {};
     navigateTo,
     startConfig,
     startFlashcards,
+    startVocabLearn,
+    deleteVocabSet,
     editExam,
     deleteExam,
     showToast,

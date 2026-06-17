@@ -3134,3 +3134,284 @@ input, select, textarea {
   }
 }
 
+/* ============================================
+   PICTURE VOCABULARY MODE
+   ============================================ */
+
+/* ── Vocab list page ── */
+.vocab-import-area {
+  display: flex;
+  justify-content: center;
+  margin-bottom: var(--space-8);
+}
+
+.vocab-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-6);
+}
+
+.vocab-set-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-6);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: all var(--transition-spring);
+  position: relative;
+  overflow: hidden;
+}
+
+.vocab-set-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #8B5CF6, #06B6D4);
+}
+
+.vocab-set-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(139, 92, 246, 0.3);
+  box-shadow: var(--shadow-xl), 0 0 30px rgba(139, 92, 246, 0.12);
+}
+
+.vocab-set-title {
+  font-size: var(--font-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.vocab-set-meta {
+  display: flex;
+  gap: var(--space-4);
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--space-5);
+}
+
+.vocab-set-actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.btn-vocab-learn {
+  background: linear-gradient(135deg, #06B6D4, #8B5CF6);
+  color: white;
+  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.4);
+}
+
+.btn-vocab-learn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(6, 182, 212, 0.5);
+  filter: brightness(1.1);
+}
+
+/* ── Vocab learn card ── */
+.vocab-card-wrapper {
+  display: flex;
+  justify-content: center;
+  padding: 0 var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.vocab-learn-card {
+  width: 100%;
+  max-width: 480px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-glass);
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: all var(--transition-spring);
+  cursor: pointer;
+  animation: fcSlideIn 0.35s ease-out;
+}
+
+.vocab-learn-card:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 28px 48px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.vocab-learn-card:active {
+  transform: scale(0.98);
+}
+
+/* Image container */
+.vocab-card-img-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  background: linear-gradient(135deg,
+    rgba(139, 92, 246, 0.08) 0%,
+    rgba(6, 182, 212, 0.04) 100%
+  );
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vocab-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+  /* Hide browser's native broken image icon */
+  color: transparent;
+}
+
+/* Hide broken image icon via pseudo-element trick */
+.vocab-card-img::before {
+  content: none;
+}
+
+.vocab-learn-card:hover .vocab-card-img {
+  transform: scale(1.05);
+}
+
+.vocab-card-img-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 5rem;
+  opacity: 0.3;
+}
+
+.vocab-card-img-placeholder.hidden {
+  display: none;
+}
+
+.vocab-card-img.loading {
+  opacity: 0.3;
+  filter: blur(4px);
+}
+
+/* Speaker button overlay */
+.vocab-speaker-btn {
+  position: absolute;
+  bottom: var(--space-3);
+  right: var(--space-3);
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  color: white;
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-spring);
+  z-index: 2;
+}
+
+.vocab-speaker-btn:hover {
+  background: rgba(139, 92, 246, 0.8);
+  border-color: rgba(139, 92, 246, 0.6);
+  transform: scale(1.1);
+  box-shadow: 0 4px 16px rgba(139, 92, 246, 0.4);
+}
+
+.vocab-speaker-btn.speaking {
+  background: rgba(139, 92, 246, 0.9);
+  border-color: rgba(139, 92, 246, 0.7);
+  animation: speakerPulse 1s ease-in-out infinite;
+}
+
+@keyframes speakerPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.5); }
+  50% { transform: scale(1.1); box-shadow: 0 0 20px 4px rgba(139, 92, 246, 0.3); }
+}
+
+/* Card body */
+.vocab-card-body {
+  padding: var(--space-6) var(--space-6) var(--space-8);
+  text-align: center;
+}
+
+.vocab-card-word {
+  font-size: var(--font-2xl);
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: var(--space-1);
+  letter-spacing: 0.3px;
+}
+
+.vocab-card-phonetic {
+  font-size: var(--font-sm);
+  color: var(--text-muted);
+  margin-bottom: var(--space-3);
+  font-style: italic;
+}
+
+.vocab-card-phonetic:empty {
+  display: none;
+}
+
+.vocab-card-meaning {
+  font-size: var(--font-lg);
+  font-weight: 600;
+  color: var(--accent-light);
+  margin-bottom: var(--space-3);
+}
+
+.vocab-card-example {
+  font-size: var(--font-sm);
+  color: var(--text-secondary);
+  font-style: italic;
+  line-height: 1.6;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-glass);
+}
+
+.vocab-card-example:empty {
+  display: none;
+}
+
+/* ── Section styles ── */
+.section-desc {
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: var(--space-6);
+  font-size: var(--font-base);
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .vocab-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-4);
+  }
+
+  .vocab-learn-card {
+    max-width: 100%;
+  }
+
+  .vocab-card-body {
+    padding: var(--space-5) var(--space-4) var(--space-6);
+  }
+
+  .vocab-card-word {
+    font-size: var(--font-xl);
+  }
+
+  .vocab-card-meaning {
+    font-size: var(--font-base);
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "title": "Động vật / Animals (Sample)",
+  "type": "vocabulary",
+  "lang": "en",
+  "words": [
+    {
+      "word": "crab",
+      "meaning": "con cua",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/1/18/Crab_Red_on_Sea_Beach.jpg/960px-Crab_Red_on_Sea_Beach.jpg",
+      "example": "The crab walks sideways on the beach."
+    },
+    {
+      "word": "butterfly",
+      "meaning": "con bướm",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/ca/Spotted_fritillary_%28Melitaea_didyma%29_underside_Macedonia.jpg/960px-Spotted_fritillary_%28Melitaea_didyma%29_underside_Macedonia.jpg",
+      "example": "A beautiful butterfly landed on the flower."
+    },
+    {
+      "word": "eagle",
+      "meaning": "đại bàng",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Bald_eagle_in_a_nosedive.jpg/500px-Bald_eagle_in_a_nosedive.jpg",
+      "example": "The eagle flies high in the sky."
+    },
+    {
+      "word": "dolphin",
+      "meaning": "cá heo",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/6/60/010_Atlantic_bottlenose_dolphin_jumping_at_Pelican_point_Photo_by_Giles_Laurent.jpg/960px-010_Atlantic_bottlenose_dolphin_jumping_at_Pelican_point_Photo_by_Giles_Laurent.jpg",
+      "example": "Dolphins are very intelligent marine animals."
+    },
+    {
+      "word": "tiger",
+      "meaning": "con hổ",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/6/62/Panthera_tigris_sumatran_subspecies.jpg",
+      "example": "The Bengal tiger is an endangered species."
+    },
+    {
+      "word": "penguin",
+      "meaning": "chim cánh cụt",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/4/40/Adelie_Penguins_on_iceberg.jpg/960px-Adelie_Penguins_on_iceberg.jpg",
+      "example": "Penguins live in Antarctica."
+    },
+    {
+      "word": "giraffe",
+      "meaning": "hươu cao cổ",
+      "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/0/02/Giraffe_Ithala_KZN_South_Africa_Luca_Galuzzi_2004.JPG/960px-Giraffe_Ithala_KZN_South_Africa_Luca_Galuzzi_2004.JPG",
+      "example": "The giraffe has a very long neck."
+    }
+  ]
+}

@@ -11,6 +11,7 @@ window.Dexams = window.Dexams || {};
   const EXAM_KEY = 'dexams_exams';
   const HISTORY_KEY = 'dexams_history';
   const SETTINGS_KEY = 'dexams_settings';
+  const VOCAB_KEY = 'dexams_vocab';
 
   /* ---------- Utility ---------- */
   function generateId() {
@@ -246,11 +247,73 @@ window.Dexams = window.Dexams || {};
     }
   };
 
+  /* ---------- Vocabulary Storage ---------- */
+  const VocabStorage = {
+    async getAll() {
+      const db = getDb();
+      if (!db) return safeGetLocal(VOCAB_KEY, []);
+      try {
+        const snapshot = await db.ref('vocab').once('value');
+        const data = snapshot.val();
+        return data ? Object.values(data) : [];
+      } catch (err) {
+        console.error('Firebase get vocab error:', err);
+        return safeGetLocal(VOCAB_KEY, []);
+      }
+    },
+
+    async getById(id) {
+      const all = await this.getAll();
+      return all.find(v => v.id === id) || null;
+    },
+
+    async save(vocabSet) {
+      if (!vocabSet.id) vocabSet.id = generateId();
+      if (!vocabSet.createdAt) vocabSet.createdAt = new Date().toISOString();
+      vocabSet.updatedAt = new Date().toISOString();
+      vocabSet.totalWords = vocabSet.words ? vocabSet.words.length : 0;
+
+      const db = getDb();
+      if (db) {
+        try {
+          await db.ref('vocab/' + vocabSet.id).set(vocabSet);
+        } catch (err) {
+          console.error('Firebase save vocab error:', err);
+        }
+      }
+
+      const list = safeGetLocal(VOCAB_KEY, []);
+      const index = list.findIndex(v => v.id === vocabSet.id);
+      if (index >= 0) list[index] = vocabSet;
+      else list.push(vocabSet);
+      return safeSetLocal(VOCAB_KEY, list);
+    },
+
+    async delete(id) {
+      const db = getDb();
+      if (db) {
+        try {
+          await db.ref('vocab/' + id).remove();
+        } catch (err) {
+          console.error('Firebase delete vocab error:', err);
+        }
+      }
+      const list = safeGetLocal(VOCAB_KEY, []).filter(v => v.id !== id);
+      return safeSetLocal(VOCAB_KEY, list);
+    },
+
+    async count() {
+      const all = await this.getAll();
+      return all.length;
+    }
+  };
+
   /* ---------- Export ---------- */
   window.Dexams.ExamStorage = ExamStorage;
   window.Dexams.HistoryStorage = HistoryStorage;
   window.Dexams.SettingsStorage = SettingsStorage;
   window.Dexams.ProgressStorage = ProgressStorage;
+  window.Dexams.VocabStorage = VocabStorage;
   window.Dexams.generateId = generateId;
 })();
 

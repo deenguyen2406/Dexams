@@ -397,11 +397,90 @@ window.Dexams = window.Dexams || {};
   }
 
   /**
+   * Parse a JSON file string into a vocabulary set.
+   * Expected format: { type: "vocabulary", title, lang, words: [{ word, meaning, image?, example? }] }
+   * Also accepts: { words: [...] } without explicit type.
+   * @param {string} content — raw JSON string
+   * @returns {{ vocabSet: object|null, errors: string[] }}
+   */
+  function parseVocabJSON(content) {
+    const errors = [];
+    let data;
+
+    try {
+      data = JSON.parse(content);
+    } catch (e) {
+      return { vocabSet: null, errors: ['Invalid JSON format: ' + e.message] };
+    }
+
+    if (!data.words || !Array.isArray(data.words)) {
+      return { vocabSet: null, errors: ['JSON must contain a "words" array.'] };
+    }
+
+    if (data.words.length === 0) {
+      return { vocabSet: null, errors: ['The vocabulary set has no words.'] };
+    }
+
+    const words = [];
+    data.words.forEach((w, idx) => {
+      const num = idx + 1;
+
+      if (!w.word) {
+        errors.push(`Word ${num}: missing "word" field.`);
+        return;
+      }
+      if (!w.meaning) {
+        errors.push(`Word ${num}: missing "meaning" field.`);
+        return;
+      }
+
+      words.push({
+        id: w.id || num,
+        word: String(w.word).trim(),
+        meaning: String(w.meaning).trim(),
+        image: w.image || '',
+        example: w.example || ''
+      });
+    });
+
+    if (words.length === 0) {
+      errors.push('No valid words found after parsing.');
+      return { vocabSet: null, errors };
+    }
+
+    const vocabSet = {
+      title: data.title || '',
+      lang: data.lang || 'en',
+      words: words,
+      totalWords: words.length,
+      type: 'vocabulary'
+    };
+
+    return { vocabSet, errors };
+  }
+
+  /**
+   * Check if a parsed JSON object is a vocabulary set.
+   */
+  function isVocabJSON(content) {
+    try {
+      const data = JSON.parse(content);
+      return data.type === 'vocabulary' || (Array.isArray(data.words) && data.words.length > 0);
+    } catch {
+      return false;
+    }
+  }
+
+  /**
    * Detect file type and parse accordingly.
    */
   function parseFile(content, filename) {
     const ext = (filename || '').split('.').pop().toLowerCase();
     if (ext === 'json') {
+      // Check if it's a vocabulary file first
+      if (isVocabJSON(content)) {
+        return parseVocabJSON(content);
+      }
       return parseJSON(content);
     } else if (ext === 'txt') {
       return parseTXT(content);
@@ -409,6 +488,9 @@ window.Dexams = window.Dexams || {};
       // Try JSON first, then TXT
       try {
         JSON.parse(content);
+        if (isVocabJSON(content)) {
+          return parseVocabJSON(content);
+        }
         return parseJSON(content);
       } catch {
         return parseTXT(content);
@@ -420,6 +502,8 @@ window.Dexams = window.Dexams || {};
   window.Dexams.Importer = {
     parseJSON,
     parseTXT,
+    parseVocabJSON,
+    isVocabJSON,
     parseFile
   };
 })();
